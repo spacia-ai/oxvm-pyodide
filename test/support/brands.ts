@@ -1,4 +1,4 @@
-import type { Host } from "@oxidevm/sdk/wasm";
+import type { Host } from "@oxvm/sdk/wasm";
 import type { FileDescriptor } from "../../src/host-types.ts";
 
 /** The VM's process id type (a branded number). */

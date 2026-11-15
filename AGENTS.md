@@ -1,6 +1,6 @@
-# oxidevm-pyodide: instructions for coding agents
+# oxvm-pyodide: instructions for coding agents
 
-This repository is an OxideVM WebAssembly module (a command) that runs Python programs with Pyodide. `module.ts` holds the
+This repository is an OXVM WebAssembly module (a command) that runs Python programs with Pyodide. `module.ts` holds the
 manifest (a literal) and the wiring of the adapter; the code is in `src/`. It declares the commands `python` and `python3`
 (engine ADR 0027): an application turns them on for a VM, and every program there can then run them from its PATH.
 
@@ -23,12 +23,12 @@ manifest (a literal) and the wiring of the adapter; the code is in `src/`. It de
 - WebAssembly JSPI is optional (the manifest does not require it; Firefox ships it behind a preference). Everything a
   command, the REPL, `-m`, imports and Python's network need is synchronous: `time.sleep` blocks with `Atomics.wait`
   (`Interrupts.sleepSync`), a package a program imports is unpacked with `host.artifacts.bytesSync` (`installSync`), and
-  sockets use the kit's synchronous path. Only the `oxidevm` module's waits use `run_sync`, and they refuse with ENOTSUP
+  sockets use the kit's synchronous path. Only the `oxvm` module's waits use `run_sync`, and they refuse with ENOTSUP
   before starting anything when `can_run_sync()` is false. Do not add a new `run_sync` to a path a command needs.
 - Ctrl+C (`src/signals.ts`): SIGINT is trapped once Pyodide has loaded, and the runner arms Pyodide's interrupt buffer from
   inside its own `try`. Pyodide's event loop must never see a pending interrupt: every JavaScript call that Python waits for
-  (`run_sync`, only the `oxidevm` module's `run` and `connect_*`) holds a pending Ctrl+C before it settles and resolves with its outcome instead of rejecting (`held` in
-  `src/guest.ts`), and Python calls `_oxidevm_bridge.check_interrupt()` right after it, which puts the Ctrl+C back and
+  (`run_sync`, only the `oxvm` module's `run` and `connect_*`) holds a pending Ctrl+C before it settles and resolves with its outcome instead of rejecting (`held` in
+  `src/guest.ts`), and Python calls `_oxvm_bridge.check_interrupt()` right after it, which puts the Ctrl+C back and
   raises KeyboardInterrupt. A new wait of the bridge must do the same. Ctrl+C during the program's own asyncio waits is
   not handled yet (README.md, Known limits). The interpreter polls the buffer through its import
   `_Py_CheckEmscriptenSignals_Helper`, which `useAtomicSignalPoll` replaces with an `Atomics.exchange` when the
@@ -44,7 +44,7 @@ manifest (a literal) and the wiring of the adapter; the code is in `src/`. It de
   scripts/record-cpython-net.py`); a Python program decides its own exit, so the module never exits 69 for it.
 - A program started as a command cannot import the JavaScript bridge (`src/python/hide-bridge.ts`); application starts can.
   It is defence in depth, not a boundary, and README.md must keep saying so.
-- Import types from `@oxidevm/sdk/wasm` with `import type`; the only value import is `defineModule`. The adapter ships as one
+- Import types from `@oxvm/sdk/wasm` with `import type`; the only value import is `defineModule`. The adapter ships as one
   self-contained file. A module never imports the kit; it arrives as `host.kit`.
 - No `any`, no `@ts-ignore`, no non-null assertions, no type assertions on untrusted values. Treat everything from outside
   (arguments, bytes, JSON, Python-side values, WebAssembly exports) as `unknown` and check it.
@@ -56,17 +56,17 @@ manifest (a literal) and the wiring of the adapter; the code is in `src/`. It de
 - Tests that mount the file system bridge use `test/support/workspace-fixture.ts`; tests of the Python side use
   `test/support/guest-fixture.ts`. Keep each test file near 600 lines, and when a behaviour is guarded by a branch, write the
   test that fails without it (a round of 89 one-line mutations of `src/` found 15 branches that no test guarded).
-- Verify with `pnpm run check` (types, lint, and `oxidevm wasm build --check`), then `pnpm test`, then `pnpm run test:conformance` (`oxidevm wasm test` in a real browser). `pnpm run test:browser` needs
+- Verify with `pnpm run check` (types, lint, and `oxvm wasm build --check`), then `pnpm test`, then `pnpm run test:conformance` (`oxvm wasm test` in a real browser). `pnpm run test:browser` needs
   the engine release, a signed Userspace image with python3, and Chromium (see `test/browser/harness.ts`).
   `test:conformance` starts the module as `-c pass`: a start without a program reads one from standard input, which
-  `oxidevm wasm test` leaves open, so it would never end.
-- `@oxidevm/sdk` and `@oxidevm/cli` are pinned to an exact version (0.0.12, Userspace API 146: the module frame, `net.internet`,
-  `kit.emscripten.network` and `kit.tls` need it; module commands and `process.signals` need 145, and `files.sync` and
-  `files.async` 144 for `utimes`) and installed from npm. The committed
+  `oxvm wasm test` leaves open, so it would never end.
+- `@oxvm/sdk` and `@oxvm/cli` are pinned to version 0.0.27 and installed from npm. The module frame, `net.internet`,
+  `kit.emscripten.network` and `kit.tls` require Userspace API 146; module commands and `process.signals` require 145,
+  and `files.sync` and `files.async` require 144 for `utimes`. The committed
   `pnpm-workspace.yaml` only allows esbuild's install script and excludes those two versions from pnpm's minimum-release-age
   policy.
 - To develop against an SDK that is not published yet, use a local build of the SDK repository:
-  `pnpm add -D @oxidevm/sdk@file:<sdk>/packages/sdk @oxidevm/cli@link:<sdk>/packages/cli` (the CLI as a link, because it
+  `pnpm add -D @oxvm/sdk@file:<sdk>/packages/sdk @oxvm/cli@link:<sdk>/packages/cli` (the CLI as a link, because it
   depends on the SDK through its workspace), and never commit the resulting `package.json` and `pnpm-lock.yaml`.
 - Release by tag: `pnpm run release` prints the steps.
 - Commits, tags, pull requests and release notes in this repository are the maintainer's: authored as `Łukasz Potępa <lukasz@spacia.ai>`, with no AI attribution (no `Co-Authored-By` trailer, no "Generated with" line). Before pushing, `git log origin/main..HEAD --format='%an <%ae> | %cn <%ce> | %B' | grep -iE '^co-authored-by:|generated with'` must print nothing.

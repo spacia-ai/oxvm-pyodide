@@ -7,7 +7,7 @@ import { Capture } from "./support.ts";
 // machine, so the bytes leave the VM through the relay as they would to a real server. The servers' certificates come
 // from a throwaway root that the program trusts with cafile= (engine TLS API 2, trust); nothing turns verification off.
 
-const WORK = "/workspace/_oxidevm";
+const WORK = "/workspace/_oxvm";
 const CA = `${WORK}/internet-ca.pem`;
 
 /** What the harness gives the page for these scenarios (`--internet`). */
@@ -20,7 +20,7 @@ export interface InternetConfig {
 interface Shell { readonly code: number; readonly stdout: string; readonly stderr: string }
 
 async function python(context: Context, program: string): Promise<Shell> {
-  await context.vm.workspace.writeText("_oxidevm/internet.py", program);
+  await context.vm.workspace.writeText("_oxvm/internet.py", program);
   const result = await context.vm.exec({ command: "/bin/sh", args: ["-c", `python3 ${WORK}/internet.py`], cwd: WORK });
   const decode = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);
   return { code: result.exit.kind === "exited" ? result.exit.code : 128 + result.exit.signalNumber, stdout: decode(result.stdout), stderr: decode(result.stderr) };
@@ -33,7 +33,7 @@ function internet(context: Context): InternetConfig {
 
 export async function internetConnect(context: Context): Promise<string> {
   const config = internet(context);
-  await context.vm.workspace.writeText("_oxidevm/internet-ca.pem", config.root);
+  await context.vm.workspace.writeText("_oxvm/internet-ca.pem", config.root);
   await context.vm.network.connect({ kind: "server", url: config.relayUrl });
   return `the VM connected to the relay test peer (${JSON.stringify(context.vm.network.state.kind)}); the program trusts the test root through cafile=`;
 }
@@ -106,7 +106,7 @@ except TimeoutError as error:
 }
 
 export async function internetInterruptRecv(context: Context): Promise<string> {
-  await context.vm.workspace.writeText("_oxidevm/internet-waits.py", "import socket\nconnection = socket.create_connection(('silent.test', 443))\nprint('connected', flush=True)\nconnection.recv(10)\n");
+  await context.vm.workspace.writeText("_oxvm/internet-waits.py", "import socket\nconnection = socket.create_connection(('silent.test', 443))\nprint('connected', flush=True)\nconnection.recv(10)\n");
   const handle = await context.vm.spawn({ command: "/bin/sh", args: ["-i"], cwd: WORK, terminal: { columns: 100, rows: 30 } });
   const writer = handle.stdin.getWriter(), output = new Capture(handle.output);
   await writer.write(encoder.encode(`NO_COLOR=1 python3 ${WORK}/internet-waits.py\n`));

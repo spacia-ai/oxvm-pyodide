@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { Worker } from "node:worker_threads";
-import { LinuxError } from "@oxidevm/sdk/js-process";
+import { LinuxError } from "@oxvm/sdk/js-process";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PYTHON_VERSION } from "../src/cli.ts";
 import { ModuleError } from "../src/errors.ts";
@@ -280,15 +280,15 @@ describe("Ctrl+C in the program", () => {
     expect(await guest.run("import sys\nprint(sys.stdin.readline().strip())\n", { stdin: "after the signal\n" })).toEqual({ status: 0, stdout: "after the signal\n", stderr: "" });
   });
 
-  it("interrupts oxidevm.run while it waits for a native program, and otherwise reports the EINTR", async () => {
+  it("interrupts oxvm.run while it waits for a native program, and otherwise reports the EINTR", async () => {
     const files = guest.process.host.files;
     const read = files.read;
     try {
       files.read = () => Promise.reject(new LinuxError(4));
-      const unexplained = await guest.run("import oxidevm\ntry:\n    oxidevm.run(['/bin/sleep', '100'], timeout=60)\nexcept Exception as error:\n    print(type(error).__name__, getattr(error, 'code', None))\n");
+      const unexplained = await guest.run("import oxvm\ntry:\n    oxvm.run(['/bin/sleep', '100'], timeout=60)\nexcept Exception as error:\n    print(type(error).__name__, getattr(error, 'code', None))\n");
       expect(unexplained).toEqual({ status: 0, stdout: "JsException EINTR\n", stderr: "" });
       files.read = () => { guest.interrupts[0] = 2; return Promise.reject(new LinuxError(4)); };
-      const result = await guest.run("import oxidevm\noxidevm.run(['/bin/sleep', '100'], timeout=60)\nprint('not reached')\n");
+      const result = await guest.run("import oxvm\noxvm.run(['/bin/sleep', '100'], timeout=60)\nprint('not reached')\n");
       expect(result).toMatchObject({ status: "SIGINT", stdout: "" });
       expect(result.stderr).toMatch(/File "\/workspace\/program\.py", line 2, in <module>[\s\S]*KeyboardInterrupt\n$/u);
     } finally {
@@ -297,10 +297,10 @@ describe("Ctrl+C in the program", () => {
   });
 
   it("interrupts a socket that waits for its peer, and otherwise reports InterruptedError", async () => {
-    guest.sockets.listen("unix:/workspace/_oxidevm/silent.sock", () => undefined);
+    guest.sockets.listen("unix:/workspace/_oxvm/silent.sock", () => undefined);
     const sockets = guest.sockets.sockets;
     const read = sockets.read;
-    const program = "import oxidevm\nconnection = oxidevm.connect_unix('/workspace/_oxidevm/silent.sock')\ntry:\n    connection.recv(10)\nexcept InterruptedError as error:\n    print('InterruptedError', error.errno)\n";
+    const program = "import oxvm\nconnection = oxvm.connect_unix('/workspace/_oxvm/silent.sock')\ntry:\n    connection.recv(10)\nexcept InterruptedError as error:\n    print('InterruptedError', error.errno)\n";
     try {
       sockets.read = () => Promise.reject(new LinuxError(4));
       expect(await guest.run(program)).toMatchObject({ status: 0, stdout: "InterruptedError 27\n" });
@@ -314,12 +314,12 @@ describe("Ctrl+C in the program", () => {
   });
 
   it("raises a Ctrl+C that arrived while a socket call succeeded once the call returns", async () => {
-    guest.sockets.listen("unix:/workspace/_oxidevm/answers.sock", peer => { peer.write("answer"); });
+    guest.sockets.listen("unix:/workspace/_oxvm/answers.sock", peer => { peer.write("answer"); });
     const sockets = guest.sockets.sockets;
     const read = sockets.read;
     try {
       sockets.read = async (fd, count, options) => { const bytes = await read(fd, count, options); guest.interrupts[0] = 2; return bytes; };
-      const result = await guest.run("import oxidevm\nconnection = oxidevm.connect_unix('/workspace/_oxidevm/answers.sock')\nprint(connection.recv(10))\n");
+      const result = await guest.run("import oxvm\nconnection = oxvm.connect_unix('/workspace/_oxvm/answers.sock')\nprint(connection.recv(10))\n");
       expect(result).toMatchObject({ status: "SIGINT", stdout: "" });
       expect(result.stderr).toMatch(/line 3, in <module>[\s\S]*KeyboardInterrupt\n$/u);
     } finally {
@@ -328,10 +328,10 @@ describe("Ctrl+C in the program", () => {
   });
 
   it("raises a Ctrl+C that arrived during any other call of the bridge once the call returns", async () => {
-    guest.sockets.listen("unix:/workspace/_oxidevm/sink.sock", () => undefined);
+    guest.sockets.listen("unix:/workspace/_oxvm/sink.sock", () => undefined);
     const sockets = guest.sockets.sockets;
     const saved = { connect: sockets.connect, write: sockets.write, close: sockets.close };
-    const program = "import oxidevm\nconnection = oxidevm.connect_unix('/workspace/_oxidevm/sink.sock')\nconnection.sendall(b'data')\nconnection.close()\nprint('not reached')\n";
+    const program = "import oxvm\nconnection = oxvm.connect_unix('/workspace/_oxvm/sink.sock')\nconnection.sendall(b'data')\nconnection.close()\nprint('not reached')\n";
     try {
       const cases = [
         ["connect", 2, () => { sockets.connect = async (fd, address, options) => { await saved.connect(fd, address, options); guest.interrupts[0] = 2; }; }],
@@ -356,7 +356,7 @@ describe("Ctrl+C in the program", () => {
     process.on("unhandledRejection", listener);
     try {
       // The proxy of the promise stays referenced while the call fails, as in a frame that a KeyboardInterrupt unwinds.
-      expect(await guest.run("import _oxidevm_bridge, time\nwaiting = _oxidevm_bridge.recv(12345, 10, 0)\ntime.sleep(0.05)\nprint('gave up')\n")).toEqual({ status: 0, stdout: "gave up\n", stderr: "" });
+      expect(await guest.run("import _oxvm_bridge, time\nwaiting = _oxvm_bridge.recv(12345, 10, 0)\ntime.sleep(0.05)\nprint('gave up')\n")).toEqual({ status: 0, stdout: "gave up\n", stderr: "" });
       await new Promise(resolve => { setTimeout(resolve, 50); });
       expect(unhandled).toEqual([]);
     } finally {
@@ -365,7 +365,7 @@ describe("Ctrl+C in the program", () => {
   });
 
   it("returns at once from a sleep of the bridge that is not given a number of milliseconds", async () => {
-    expect(await guest.run("import _oxidevm_bridge\nfor value in ('soon', None, -5, float('nan')):\n    _oxidevm_bridge.sleep(value)\nprint('returned')\n"))
+    expect(await guest.run("import _oxvm_bridge\nfor value in ('soon', None, -5, float('nan')):\n    _oxvm_bridge.sleep(value)\nprint('returned')\n"))
       .toEqual({ status: 0, stdout: "returned\n", stderr: "" });
   });
 

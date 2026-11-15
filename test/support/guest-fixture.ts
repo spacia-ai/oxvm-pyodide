@@ -1,8 +1,8 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { kit } from "@oxidevm/sdk/wasm";
-import type { NativeRunRequest } from "@oxidevm/sdk/wasm";
+import { kit } from "@oxvm/sdk/wasm";
+import type { NativeRunRequest } from "@oxvm/sdk/wasm";
 import type { PyodideInterface } from "pyodide";
 import { installGuest } from "../../src/guest.ts";
 import type { ShippedPackages } from "../../src/guest.ts";
@@ -51,7 +51,7 @@ export interface CommandLineOptions {
 }
 
 /**
- * A Pyodide that is set up the way the command sets it up (workspace mounted, standard streams attached, the `oxidevm`
+ * A Pyodide that is set up the way the command sets it up (workspace mounted, standard streams attached, the `oxvm`
  * module and the process identity installed), in Node, against fakes of the VM's files, processes and sockets.
  */
 export interface GuestFixture {

@@ -1,8 +1,8 @@
 import * as nodeFs from "node:fs";
 import { constants } from "node:os";
 import { join } from "node:path";
-import { LinuxError } from "@oxidevm/sdk/js-process";
-import { kit } from "@oxidevm/sdk/wasm";
+import { LinuxError } from "@oxvm/sdk/js-process";
+import { kit } from "@oxvm/sdk/wasm";
 import type { FileDescriptor, SyncFiles } from "../../src/host-types.ts";
 
 type LinuxTimestamp = Parameters<SyncFiles["utimes"]>[1];

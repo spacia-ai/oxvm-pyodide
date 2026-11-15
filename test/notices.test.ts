@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { classifyLicense } from "@oxidevm/sdk/wasm";
+import { classifyLicense } from "@oxvm/sdk/wasm";
 import { describe, expect, it } from "vitest";
 import { generate } from "../scripts/generate-notices.ts";
 import { declaredLicense, incorporatedSection, parseMetadata, RECORDED, renderNotices, verifyRecorded } from "../scripts/notices.ts";

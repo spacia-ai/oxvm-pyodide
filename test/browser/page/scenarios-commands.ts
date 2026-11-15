@@ -1,5 +1,5 @@
-import type { TerminalHandle, UserspaceVM } from "@oxidevm/sdk";
-import type { ModuleCommandsStatus } from "@oxidevm/sdk/wasm";
+import type { TerminalHandle, UserspaceVM } from "@oxvm/sdk";
+import type { ModuleCommandsStatus } from "@oxvm/sdk/wasm";
 import { Capture, check, decoder, encoder, field, native, run, same, sleep } from "./support.ts";
 import type { Context } from "./support.ts";
 
@@ -13,13 +13,13 @@ export interface EnabledCommands {
   disable(): Promise<void>;
 }
 
-/** What the page gives these scenarios: `enableModuleCommands` of @oxidevm/sdk/wasm for this module. */
+/** What the page gives these scenarios: `enableModuleCommands` of @oxvm/sdk/wasm for this module. */
 export interface CommandSwitch {
   /** Turns python and python3 on in the VM, with no packages to load; resolves to the handle that reports and turns them off. */
   enable(vm: UserspaceVM): Promise<EnabledCommands>;
 }
 
-const WORK = "/workspace/_oxidevm";
+const WORK = "/workspace/_oxvm";
 
 /**
  * A shell command that prints the status of the previous one as `s2=<status>`. A terminal echoes what is typed, so the
@@ -128,7 +128,7 @@ export async function commandAlias(context: Context): Promise<string> {
 }
 
 export async function commandFile(context: Context): Promise<string> {
-  await context.vm.workspace.writeText("_oxidevm/command-args.py", "import os, sys\nprint(sys.argv, __file__, sys.path[0], os.getcwd())\nsys.exit(len(sys.argv))\n");
+  await context.vm.workspace.writeText("_oxvm/command-args.py", "import os, sys\nprint(sys.argv, __file__, sys.path[0], os.getcwd())\nsys.exit(len(sys.argv))\n");
   const result = await shell(context.vm, "python3 command-args.py x 'y z'");
   expectShell(result, 3, `['command-args.py', 'x', 'y z'] ${WORK}/command-args.py ${WORK} ${WORK}\n`, "python3 FILE with arguments");
   return "a file with arguments, its exit status reaching the shell";
@@ -191,7 +191,7 @@ export async function commandModule(context: Context): Promise<string> {
   expectShell(await shell(context.vm, "echo '{\"a\": [1]}' | python3 -m json.tool"), 0, '{\n    "a": [\n        1\n    ]\n}\n', "python3 -m json.tool");
   const missing = await shell(context.vm, "python3 -m nosuchmodule");
   same({ code: missing.code, stderr: missing.stderr }, { code: 1, stderr: "/usr/local/bin/python3: No module named nosuchmodule\n" }, "python3 -m with a missing module");
-  await context.vm.workspace.writeText("_oxidevm/mod_here.py", "import sys\nprint(__name__, sys.argv)\n");
+  await context.vm.workspace.writeText("_oxvm/mod_here.py", "import sys\nprint(__name__, sys.argv)\n");
   expectShell(await shell(context.vm, "python3 -m mod_here a"), 0, `__main__ ['${WORK}/mod_here.py', 'a']\n`, "python3 -m with a module in the working directory");
   return "python3 -m runs a standard module and one from the working directory, and names a missing one as CPython does";
 }
@@ -211,8 +211,8 @@ export async function commandPlaces(context: Context): Promise<string> {
 
 export async function commandShebang(context: Context): Promise<string> {
   const { vm } = context;
-  await vm.workspace.writeText("_oxidevm/through-env.py", "#!/usr/bin/env python3\nimport sys\nprint('env', sys.argv[1:], sys.executable)\n");
-  await vm.workspace.writeText("_oxidevm/direct.py", "#!/usr/local/bin/python3\nimport sys\nprint('direct', sys.argv[1:], sys.executable)\n");
+  await vm.workspace.writeText("_oxvm/through-env.py", "#!/usr/bin/env python3\nimport sys\nprint('env', sys.argv[1:], sys.executable)\n");
+  await vm.workspace.writeText("_oxvm/direct.py", "#!/usr/local/bin/python3\nimport sys\nprint('direct', sys.argv[1:], sys.executable)\n");
   same((await native(vm, "/bin/chmod", ["755", `${WORK}/through-env.py`, `${WORK}/direct.py`])).code, 0, "chmod");
   expectShell(await shell(vm, "./through-env.py a b"), 0, "env ['a', 'b'] /usr/local/bin/python3\n", "#!/usr/bin/env python3");
   expectShell(await shell(vm, "./direct.py c"), 0, "direct ['c'] /usr/local/bin/python3\n", "#!/usr/local/bin/python3");
@@ -230,7 +230,7 @@ export async function commandBridgeHidden(context: Context): Promise<string> {
 }
 
 export async function commandInterrupt(context: Context): Promise<string> {
-  await context.vm.workspace.writeText("_oxidevm/spin.py", "import atexit\natexit.register(print, 'atexit ran')\nprint('ready', flush=True)\nwhile True:\n    pass\n");
+  await context.vm.workspace.writeText("_oxvm/spin.py", "import atexit\natexit.register(print, 'atexit ran')\nprint('ready', flush=True)\nwhile True:\n    pass\n");
   const session = await terminal(context.vm, "/bin/sh", ["-i"]);
   await session.type(`for i in 1 2 3; do python3 ${WORK}/spin.py; echo "after $i"; done`);
   await session.output.waitFor("ready");
@@ -252,7 +252,7 @@ export async function commandInterrupt(context: Context): Promise<string> {
 
 export async function commandSleepInterrupt(context: Context): Promise<string> {
   // In a file, so that the terminal's echo of the typed line cannot contain what the program prints.
-  await context.vm.workspace.writeText("_oxidevm/sleeper.py", "import time\nprint('asleep', flush=True)\ntime.sleep(600)\n");
+  await context.vm.workspace.writeText("_oxvm/sleeper.py", "import time\nprint('asleep', flush=True)\ntime.sleep(600)\n");
   const session = await terminal(context.vm, "/bin/sh", ["-i"]);
   // On a line of its own: an interactive shell drops the rest of a line once a Ctrl+C has killed its command.
   await session.type(`NO_COLOR=1 python3 ${WORK}/sleeper.py`);

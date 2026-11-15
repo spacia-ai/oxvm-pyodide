@@ -1,7 +1,7 @@
 /**
  * Replaces `time.sleep` with one that Ctrl+C ends at once. Pyodide's own `time.sleep` waits on an asyncio timer: a Ctrl+C
  * during the wait is noticed only when the time is up, and then inside Pyodide's event loop, which cannot take a
- * KeyboardInterrupt (see src/signals.ts). This one blocks in JavaScript through `_oxidevm_bridge.sleep`
+ * KeyboardInterrupt (see src/signals.ts). This one blocks in JavaScript through `_oxvm_bridge.sleep`
  * (`Interrupts.sleepSync`, with `Atomics.wait`, so it needs no WebAssembly JSPI), which ends early when a Ctrl+C is
  * pending and holds it, and then raises it with `check_interrupt`. Its arguments are checked as CPython 3.14's
  * `time.sleep` checks them, with the same messages.
@@ -10,7 +10,7 @@ export const SLEEP_PATCH_SOURCE = `import operator as _operator
 import time as _time
 from functools import wraps as _wraps
 
-import _oxidevm_bridge as _bridge
+import _oxvm_bridge as _bridge
 
 _pyodide_sleep = _time.sleep
 # The longest time CPython can represent: 2**63 - 1 nanoseconds.

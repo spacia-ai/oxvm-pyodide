@@ -1,4 +1,4 @@
-import { NetError, TlsError } from "@oxidevm/sdk/wasm";
+import { NetError, TlsError } from "@oxvm/sdk/wasm";
 import type { NetHost, NetTlsSession } from "../../src/host-types.ts";
 
 // A deterministic stand-in for `host.net` (engine ADR 0029) that Python's own socket and ssl code can drive
@@ -92,6 +92,7 @@ export function fakeNet(names: Readonly<Record<string, readonly string[]>>, serv
       net: {
         resolve: () => Promise.reject(new Error("the fake network is synchronous")),
         connect: () => Promise.reject(new Error("the fake network is synchronous")),
+        connectUnixSync: () => { throw new Error("this network fixture does not provide Unix sockets"); },
         resolveSync: name => {
           if (!state.connected && name !== "localhost") throw new NetError("EPERM", `getaddrinfo ${name}: this VM is not connected to the internet`, { reason: "vm-local-only", errno: 1, hostname: name });
           if (name === "slow.test") throw new NetError("EAI_AGAIN", `getaddrinfo ${name}: the VM's nameserver did not answer`, { hostname: name });

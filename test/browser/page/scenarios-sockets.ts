@@ -1,10 +1,10 @@
-import type { ProcessHandle } from "@oxidevm/sdk";
+import type { ProcessHandle } from "@oxvm/sdk";
 import { Capture, expectStatus, finishWithin, run, same, start, trace } from "./support.ts";
 import type { Context } from "./support.ts";
 
-// Scenarios about oxidevm.connect_unix and oxidevm.connect_tcp talking to services run by native Linux programs.
+// Scenarios about oxvm.connect_unix and oxvm.connect_tcp talking to services run by native Linux programs.
 
-const UNIX_PATH = "/workspace/_oxidevm/echo.sock";
+const UNIX_PATH = "/workspace/_oxvm/echo.sock";
 const TCP_PORT = 5599;
 
 /** A native Python service that answers every chunk with the same bytes in upper case, one client at a time. */
@@ -16,13 +16,13 @@ function server(family: "unix" | "tcp"): string {
 }
 
 const CLIENT = `import errno, json, sys
-import oxidevm
+import oxvm
 
 def step(name):
     print("step:", name, file=sys.stderr, flush=True)
 
 out = {}
-with oxidevm.connect_unix("${UNIX_PATH}") as connection:
+with oxvm.connect_unix("${UNIX_PATH}") as connection:
     connection.settimeout(30)
     step("unix connected")
     connection.sendall(b"hello unix\\n")
@@ -39,7 +39,7 @@ with oxidevm.connect_unix("${UNIX_PATH}") as connection:
             received += connection.recv(65536)
     out["unix_200kb"] = bytes(received) == payload.upper()
     step("unix 200 KB echoed")
-with oxidevm.connect_tcp(${String(TCP_PORT)}) as connection:
+with oxvm.connect_tcp(${String(TCP_PORT)}) as connection:
     connection.settimeout(30)
     step("tcp connected")
     connection.sendall(b"hello tcp\\n")
@@ -53,10 +53,10 @@ def attempt(connect):
     except OSError as error:
         return [type(error).__name__, errno.errorcode[error.errno]]
 
-out["missing"] = attempt(lambda: oxidevm.connect_unix("/workspace/_oxidevm/none.sock"))
-out["refused"] = attempt(lambda: oxidevm.connect_tcp(5598))
+out["missing"] = attempt(lambda: oxvm.connect_unix("/workspace/_oxvm/none.sock"))
+out["refused"] = attempt(lambda: oxvm.connect_tcp(5598))
 step("errors checked")
-with oxidevm.connect_unix("${UNIX_PATH}") as connection:
+with oxvm.connect_unix("${UNIX_PATH}") as connection:
     connection.settimeout(0.3)
     try:
         connection.recv(10)
@@ -92,9 +92,9 @@ export async function sockets(context: Context): Promise<string> {
     // A server that has gone away leaves its socket file behind; connecting to it is refused, as Linux refuses it.
     for (const process of servers) await process.kill("SIGKILL");
     await Promise.all(servers.map(process => process.exit));
-    const stale = await run(context, `import errno, json, oxidevm
+    const stale = await run(context, `import errno, json, oxvm
 try:
-    oxidevm.connect_unix("${UNIX_PATH}")
+    oxvm.connect_unix("${UNIX_PATH}")
     print(json.dumps("connected"))
 except OSError as error:
     print(json.dumps([type(error).__name__, errno.errorcode[error.errno]]))

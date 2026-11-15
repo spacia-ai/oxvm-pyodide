@@ -1,7 +1,7 @@
 /**
  * TLS for Python's `ssl` on the engine's TLS client (engine ADR 0029, N-4 and N-7). Pyodide's `ssl` is a stub whose
  * sockets cannot encrypt; this makes its `SSLSocket` (for `wrap_socket`: urllib, http.client, smtplib, requests) and its
- * `SSLObject` (for `wrap_bio`, memory BIOs) run a TLS client session of the engine through `_oxidevm_bridge.tls_*`. The
+ * `SSLObject` (for `wrap_bio`, memory BIOs) run a TLS client session of the engine through `_oxvm_bridge.tls_*`. The
  * ciphertext travels on the program's own socket, read and written with `_socket.socket`'s methods, so it takes the VM's
  * network and reach. As in CPython 3.14 with OpenSSL 3:
  * - a certificate the VM does not trust fails the handshake with `ssl.SSLCertVerificationError`, `reason`
@@ -30,7 +30,7 @@ import os as _os
 import socket as _socket
 import ssl as _ssl
 
-import _oxidevm_bridge as _bridge
+import _oxvm_bridge as _bridge
 import _socket as _csocket
 from pyodide.ffi import to_js as _to_js
 
@@ -162,11 +162,11 @@ class _Session:
 
 
 def _trust_of(context):
-    return list(getattr(context, "_oxidevm_trust", []))
+    return list(getattr(context, "_oxvm_trust", []))
 
 
 def _alpn_of(context):
-    return list(getattr(context, "_oxidevm_alpn", []))
+    return list(getattr(context, "_oxvm_alpn", []))
 
 
 def _check_client(context, server_side):
@@ -193,12 +193,12 @@ def _flush(sock, session):
 
 
 def _session_of(sock):
-    session = getattr(sock, "_oxidevm_session", None)
+    session = getattr(sock, "_oxvm_session", None)
     if session is None:
-        if getattr(sock, "_oxidevm_unwrapped", False) or sock._closed:
+        if getattr(sock, "_oxvm_unwrapped", False) or sock._closed:
             raise ValueError("Read on closed or unwrapped SSL socket.")
         sock.do_handshake()
-        session = sock._oxidevm_session
+        session = sock._oxvm_session
     return session
 
 
@@ -220,7 +220,7 @@ def _create(cls, sock, server_side=False, do_handshake_on_connect=True, suppress
     ssl_sock._server_hostname = None if server_hostname is None else context._encode_hostname(server_hostname)
     ssl_sock._server_side, ssl_sock._suppress_ragged_eofs = server_side, suppress_ragged_eofs
     ssl_sock._do_handshake_on_connect = do_handshake_on_connect
-    ssl_sock._oxidevm_session = None
+    ssl_sock._oxvm_session = None
     try:
         _csocket.socket.getpeername(ssl_sock)
         ssl_sock._connected = True
@@ -234,7 +234,7 @@ def _create(cls, sock, server_side=False, do_handshake_on_connect=True, suppress
 
 
 def do_handshake(self, block=False):
-    if getattr(self, "_oxidevm_session", None) is not None:
+    if getattr(self, "_oxvm_session", None) is not None:
         return
     _check_client(self._context, self._server_side)
     if not self._server_hostname:
@@ -255,7 +255,7 @@ def do_handshake(self, block=False):
     except BaseException:
         session.free()
         raise
-    self._oxidevm_session = session
+    self._oxvm_session = session
     self._sslobj = session
 
 
@@ -324,7 +324,7 @@ def sendall(self, data, flags=0):
 
 
 def pending(self):
-    session = getattr(self, "_oxidevm_session", None)
+    session = getattr(self, "_oxvm_session", None)
     if session is None:
         return 0
     session.drain()
@@ -332,30 +332,30 @@ def pending(self):
 
 
 def selected_alpn_protocol(self):
-    session = getattr(self, "_oxidevm_session", None)
+    session = getattr(self, "_oxvm_session", None)
     return None if session is None else session.status()[1]
 
 
 def getpeercert(self, binary_form=False):
-    session = getattr(self, "_oxidevm_session", None)
+    session = getattr(self, "_oxvm_session", None)
     if session is None:
         raise ValueError("handshake not done yet")
     return session.getpeercert(binary_form, self._context.verify_mode != _ssl.CERT_NONE)
 
 
 def version(self):
-    session = getattr(self, "_oxidevm_session", None)
+    session = getattr(self, "_oxvm_session", None)
     return None if session is None else session.version()
 
 
 def cipher(self):
-    session = getattr(self, "_oxidevm_session", None)
+    session = getattr(self, "_oxvm_session", None)
     return None if session is None else session.cipher()
 
 
 def _release(self):
-    session = getattr(self, "_oxidevm_session", None)
-    self._oxidevm_session = None
+    session = getattr(self, "_oxvm_session", None)
+    self._oxvm_session = None
     self._sslobj = None
     if session is not None:
         session.free()
@@ -363,7 +363,7 @@ def _release(self):
 
 
 def unwrap(self):
-    session = getattr(self, "_oxidevm_session", None)
+    session = getattr(self, "_oxvm_session", None)
     if session is None:
         raise ValueError("No SSL wrapper around " + str(self))
     try:
@@ -371,7 +371,7 @@ def unwrap(self):
         _flush(self, session)
     finally:
         _release(self)
-        self._oxidevm_unwrapped = True
+        self._oxvm_unwrapped = True
     return self
 
 
@@ -388,7 +388,7 @@ def _real_close(self):
 def connect(self, addr):
     if self._server_side:
         raise ValueError("can't connect in server-side mode")
-    if self._connected or getattr(self, "_oxidevm_session", None) is not None:
+    if self._connected or getattr(self, "_oxvm_session", None) is not None:
         raise ValueError("attempt to connect already-connected SSLSocket!")
     _socket.socket.connect(self, addr)
     self._connected = True
@@ -422,8 +422,8 @@ def _want_read():
 def _bio_feed(self):
     data = self._incoming.read()
     if data:
-        self._oxidevm_session.receive(data)
-    out = self._oxidevm_session.take()
+        self._oxvm_session.receive(data)
+    out = self._oxvm_session.take()
     if out:
         self._outgoing.write(out)
 
@@ -438,7 +438,7 @@ def _object_create(cls, incoming, outgoing, server_side=False, server_hostname=N
     self = object.__new__(cls)
     hostname = context._encode_hostname(server_hostname)
     self.__dict__.update({"_incoming": incoming, "_outgoing": outgoing, "_context": context, "_hostname": hostname, "_session_object": session, "_established": False})
-    self._oxidevm_session = _Session(hostname, _alpn_of(context), _trust_of(context))
+    self._oxvm_session = _Session(hostname, _alpn_of(context), _trust_of(context))
     return self
 
 
@@ -446,7 +446,7 @@ def _object_do_handshake(self):
     if self._established:
         return
     _bio_feed(self)
-    state, _alpn = self._oxidevm_session.status()
+    state, _alpn = self._oxvm_session.status()
     if state == "established":
         self._established = True
         return
@@ -456,7 +456,7 @@ def _object_do_handshake(self):
 
 
 def _object_read(self, len=1024, buffer=None):
-    session = self._oxidevm_session
+    session = self._oxvm_session
     count = len if buffer is None else min(len or _builtins.len(buffer), _builtins.len(buffer))
     session.drain()
     if not session.plain:
@@ -480,29 +480,29 @@ def _object_read(self, len=1024, buffer=None):
 
 def _object_write(self, data):
     payload = bytes(data)
-    self._oxidevm_session.send(payload)
+    self._oxvm_session.send(payload)
     _bio_feed(self)
     return _builtins.len(payload)
 
 
 def _object_pending(self):
-    self._oxidevm_session.drain()
-    return _builtins.len(self._oxidevm_session.plain)
+    self._oxvm_session.drain()
+    return _builtins.len(self._oxvm_session.plain)
 
 
 def _object_unwrap(self):
-    self._oxidevm_session.close()
+    self._oxvm_session.close()
     _bio_feed(self)
-    self._oxidevm_session.free()
+    self._oxvm_session.free()
 
 
 for _name, _value in {
     "_create": _object_create, "do_handshake": _object_do_handshake, "read": _object_read, "write": _object_write,
     "pending": _object_pending, "unwrap": _object_unwrap,
-    "selected_alpn_protocol": lambda self: self._oxidevm_session.status()[1],
-    "getpeercert": lambda self, binary_form=False: self._oxidevm_session.getpeercert(binary_form, self._context.verify_mode != _ssl.CERT_NONE),
-    "version": lambda self: self._oxidevm_session.version(),
-    "cipher": lambda self: self._oxidevm_session.cipher(),
+    "selected_alpn_protocol": lambda self: self._oxvm_session.status()[1],
+    "getpeercert": lambda self, binary_form=False: self._oxvm_session.getpeercert(binary_form, self._context.verify_mode != _ssl.CERT_NONE),
+    "version": lambda self: self._oxvm_session.version(),
+    "cipher": lambda self: self._oxvm_session.cipher(),
     "context": property(lambda self: self._context),
     "server_hostname": property(lambda self: self._hostname),
     "server_side": property(lambda self: False),
@@ -562,7 +562,7 @@ def load_verify_locations(self, cafile=None, capath=None, cadata=None):
                 data = _read_authorities(path)
                 if _PEM_CERTIFICATE in data:
                     entries.append(data)
-    self._oxidevm_trust = _trust_of(self) + entries
+    self._oxvm_trust = _trust_of(self) + entries
 
 
 def set_alpn_protocols(self, alpn_protocols):
@@ -572,7 +572,7 @@ def set_alpn_protocols(self, alpn_protocols):
         if not 1 <= _builtins.len(encoded) <= 255:
             raise _ssl.SSLError("ALPN protocols must be 1 to 255 in length")
         protocols.append(encoded.decode("ascii"))
-    self._oxidevm_alpn = protocols
+    self._oxvm_alpn = protocols
 
 
 for _error in (_ssl.SSLError, _ssl.SSLZeroReturnError, _ssl.SSLWantReadError, _ssl.SSLWantWriteError, _ssl.SSLSyscallError, _ssl.SSLEOFError, _ssl.SSLCertVerificationError):
@@ -585,5 +585,5 @@ _ssl.HAS_TLSv1_3 = True
 # The engine checks the server's name against the certificate's subject alternative names only, never its common name,
 # so libraries (urllib3) leave the check to it instead of matching names themselves from getpeercert().
 _ssl.HAS_NEVER_CHECK_COMMON_NAME = True
-_ssl.OPENSSL_VERSION = "OpenSSL 3 compatible (OxideVM TLS client, rustls)"
+_ssl.OPENSSL_VERSION = "OpenSSL 3 compatible (OXVM TLS client, rustls)"
 `;

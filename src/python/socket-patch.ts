@@ -2,7 +2,7 @@
  * Names for Python's `socket` through the VM's resolver (engine ADR 0029, N-4). `kit.emscripten.network` connects
  * Pyodide's sockets to the VM and answers Emscripten's own lookups, but a name that does not resolve can only become the
  * unspecified address there. So `socket.getaddrinfo`, `gethostbyname` and `gethostbyname_ex` ask the resolver
- * themselves (`_oxidevm_bridge.resolve`, synchronous) and fail as CPython 3.14 does on Linux:
+ * themselves (`_oxvm_bridge.resolve`, synchronous) and fail as CPython 3.14 does on Linux:
  * `socket.gaierror(-2, 'Name or service not known')` for a name that does not exist (EAI_NONAME, with glibc's text) and
  * `socket.gaierror(-3, 'Temporary failure in name resolution')` when the nameserver does not answer. While the VM is
  * not connected to the internet, a lookup fails with PermissionError (EPERM), as a connection does. Only IPv4 addresses
@@ -14,7 +14,7 @@
  * reaches it directly (`_socket.getaddrinfo`, C extensions) gets `socket.gaierror` too, with musl's wording.
  *
  * Timeouts: a socket's timeout (`settimeout`, `setblocking`, `socket.setdefaulttimeout`, `create_connection(timeout=)`)
- * becomes its receive timeout in `kit.emscripten.network` (`_oxidevm_bridge.receive_timeout`), so a `recv` that waits
+ * becomes its receive timeout in `kit.emscripten.network` (`_oxvm_bridge.receive_timeout`), so a `recv` that waits
  * longer raises `TimeoutError('timed out')` as in CPython, and one on a non-blocking socket raises `BlockingIOError`.
  * Connecting and sending do not time out: the VM's connection is open, or refused, before Python gets it back.
  */
@@ -22,7 +22,7 @@ export const SOCKET_PATCH_SOURCE = `import errno as _errno
 import os as _os
 import socket as _socket
 
-import _oxidevm_bridge as _bridge
+import _oxvm_bridge as _bridge
 
 _original_getaddrinfo = _socket.getaddrinfo
 _original_gethostbyname = _socket.gethostbyname

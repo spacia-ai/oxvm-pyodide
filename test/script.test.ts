@@ -1,4 +1,4 @@
-import { LinuxError } from "@oxidevm/sdk/js-process";
+import { LinuxError } from "@oxvm/sdk/js-process";
 import { describe, expect, it } from "vitest";
 import { parseCommandLine } from "../src/cli.ts";
 import type { CommandLine } from "../src/cli.ts";

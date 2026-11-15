@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { Worker } from "node:worker_threads";
-import { LinuxError } from "@oxidevm/sdk/js-process";
+import { LinuxError } from "@oxvm/sdk/js-process";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { PYTHON_VERSION } from "../src/cli.ts";
 import { normalised, oracle, oracleFiles, withoutBuild } from "./support/cpython-oracle.ts";

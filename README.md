@@ -1,20 +1,20 @@
-# oxidevm-pyodide
+# oxvm-pyodide
 
-An [OxideVM](https://oxidevm.dev) WebAssembly module (a command) that runs Python programs with
+An [OXVM](https://oxvm.dev) WebAssembly module (a command) that runs Python programs with
 [Pyodide](https://pyodide.org) (CPython 3.14.2 compiled to WebAssembly) in a Userspace JS process of the VM. The program
 shares the VM's files, process ids and sockets with real Linux programs: it reads and writes the VM's files as Linux sees
 them, starts native programs, and talks to services they listen with. pandas and Matplotlib are included. An application can
 start it, or turn on its commands, `python3` and `python`, so that shells, scripts and other programs of the VM run it from
 their PATH like any program.
 
-Status: pre-release `0.3.0`, built on the SDK 0.0.12 (Userspace API 146), which runs modules in an isolated module frame
+Status: pre-release `0.3.1`, built on `@oxvm/sdk` 0.0.27 (Userspace API 150), which runs modules in an isolated module frame
 (engine ADR 0028) and carries the module networking standard (engine ADR 0029). See [Known limits](#known-limits) and
 [Changes in 0.3.0](#changes-in-030).
 
 ## Use it
 
 ```sh
-oxidevm wasm add github:spacia-ai/oxidevm-pyodide@v0.3.0
+oxvm wasm add github:spacia-ai/oxvm-pyodide@v0.3.1
 ```
 
 The command shows what the module declares and asks before it installs anything. A module is code that runs in a worker of
@@ -22,14 +22,14 @@ your page with that authority, so review it as you would a dependency. It needs 
 isolated page; without it, it exits with status 122 and names what is missing. WebAssembly JSPI (`WebAssembly.Suspending`
 and `WebAssembly.promising`) is used where the browser has it and is not required: Python programs, the REPL, `-m`, packages
 loaded on import, `time.sleep`, Ctrl+C and Python's own network work without it (Firefox ships JSPI only behind a
-preference). Only the `oxidevm` module's `run`, `connect_unix` and `connect_tcp` wait for the VM through it; without it they
+preference). Only the `oxvm` module's `run`, `connect_unix` and `connect_tcp` wait for the VM through it; without it they
 raise `OSError(errno.ENOTSUP)` before anything starts.
 
 ### As commands of the VM
 
 ```ts
-import { enableModuleCommands } from "@oxidevm/sdk/wasm";
-import { pyodide } from "./oxidevm.modules.generated";
+import { enableModuleCommands } from "@oxvm/sdk/wasm";
+import { pyodide } from "./oxvm.modules.generated";
 
 const python = await enableModuleCommands(vm, pyodide, { commands: ["python3"] });
 // Any program in the VM now runs /usr/local/bin/python3: a shell, a script that starts with #!/usr/bin/env python3,
@@ -47,11 +47,11 @@ of your page's origin, and every run starts Pyodide again and unpacks the packag
 ### Started by the application
 
 ```ts
-import { spawnModule } from "@oxidevm/sdk/wasm";
-import { pyodide } from "./oxidevm.modules.generated";
+import { spawnModule } from "@oxvm/sdk/wasm";
+import { pyodide } from "./oxvm.modules.generated";
 
-await vm.workspace.writeText("_oxidevm/run.py", 'import pandas as pd\nprint(pd.__version__)\n');
-const python = await spawnModule(vm, pyodide, { args: ["/workspace/_oxidevm/run.py"], cwd: "/workspace" });
+await vm.workspace.writeText("_oxvm/run.py", 'import pandas as pd\nprint(pd.__version__)\n');
+const python = await spawnModule(vm, pyodide, { args: ["/workspace/_oxvm/run.py"], cwd: "/workspace" });
 const exit = await python.exit; // { kind: "exited", code: 0 }
 // python.stdout, python.stderr and python.stdin are the program's standard streams.
 ```
@@ -106,8 +106,8 @@ turned on or the module is first started, not again for every run.
   directory the module cannot use. A KeyboardInterrupt that the program does not handle prints its traceback, runs `atexit`
   and ends the process killed by SIGINT, as CPython does: a shell sees 130 and stops a loop.
 - **Ctrl+C** reaches the program as KeyboardInterrupt while it computes, reads standard input or files, sleeps in
-  `time.sleep` (which this module replaces with one that Ctrl+C ends at once), and waits in `oxidevm.run`, a socket of the
-  `oxidevm` module or a `socket` of Python's. A Ctrl+C while Pyodide starts, before the program runs, ends the process at
+  `time.sleep` (which this module replaces with one that Ctrl+C ends at once), and waits in `oxvm.run`, a socket of the
+  `oxvm` module or a `socket` of Python's. A Ctrl+C while Pyodide starts, before the program runs, ends the process at
   once. The interpreter takes a Ctrl+C out of its interrupt buffer in one atomic step (Pyodide's own poll reads it and then
   clears it, and loses a Ctrl+C that arrives in between); the module replaces that one import of the interpreter when it
   instantiates it, and Pyodide's files stay unmodified.
@@ -131,15 +131,19 @@ turned on or the module is first started, not again for every run.
   `pyodide.ffi`, `pyodide.http` and `pyodide.code` raise `ModuleNotFoundError` (or `ImportError` for `from pyodide import
   ffi`). A program the application starts keeps them.
 
-## The `oxidevm` Python module
+## The `oxvm` Python module
+
+Version 0.3.1 uses `oxvm` as the Python API name. `import oxidevm` forwards to the same API for supported legacy clients.
+The alias will be removed only after those clients migrate and their announced support period ends.
+
 
 Programs reach the Linux system around them through a module that this one installs:
 
 ```python
-import oxidevm
+import oxvm
 
 # Run a native Linux program and wait for it. argv[0] is an absolute path.
-result = oxidevm.run(["/bin/uname", "-m"], input="", check=True, timeout=10)
+result = oxvm.run(["/bin/uname", "-m"], input="", check=True, timeout=10)
 result.stdout, result.stderr, result.returncode, result.pid
 ```
 
@@ -152,12 +156,12 @@ the signal number when a signal ended the program. Violations of the limits rais
 KeyboardInterrupt.
 
 ```python
-# Talk to a service that a native program listens with: a Unix socket under /workspace/_oxidevm/ or loopback TCP.
-with oxidevm.connect_unix("/workspace/_oxidevm/service.sock") as connection:
+# Talk to a service that a native program listens with: a Unix socket under /workspace/_oxvm/ or loopback TCP.
+with oxvm.connect_unix("/workspace/_oxvm/service.sock") as connection:
     connection.sendall(b"ping\n")
     reply = connection.recv(1024)       # b"" once the other side has closed
 
-with oxidevm.connect_tcp(5432) as connection:             # host defaults to "127.0.0.1"
+with oxvm.connect_tcp(5432) as connection:             # host defaults to "127.0.0.1"
     connection.settimeout(5)            # seconds; None (the default) waits for as long as it takes
     connection.sendall(b"...")
 ```
@@ -213,7 +217,7 @@ may hold 32 sockets open; the module closes any it leaves open when it ends.
   engine takes at most 512 of them, 2 MiB, per connection, and more fail it with `ssl.SSLError`. Server-side TLS and client certificates are refused with
   `ssl.SSLError`. Only IPv4 addresses are used. A socket timeout bounds reads, not connecting or sending. Pyodide's event
   loop has no sockets, so asyncio streams cannot connect (`ssl.SSLObject` over memory BIOs works).
-- `oxidevm.connect_tcp` and `oxidevm.connect_unix` stay as they were in 0.2.0, with their own timeouts.
+- `oxvm.connect_tcp` and `oxvm.connect_unix` preserve the legacy API from 0.2.0, with their own timeouts.
 
 ## How it is built and checked
 
@@ -234,13 +238,13 @@ packages. `micropip` and installs from the network are out of scope.
 - **Commands open your page to the programs of the VM.** A program that runs `python3` or `python` hands Python code to a
   worker of your page's origin: it could make same-origin requests with your page's cookies and reach its IndexedDB, OPFS
   data and BroadcastChannels. Hiding the JavaScript bridge from commands is defence in depth, not a boundary: Pyodide's
-  private modules, and objects that the `oxidevm` module holds, still lead to JavaScript. Turn the commands on only in a VM
+  private modules, and objects that the `oxvm` module holds, still lead to JavaScript. Turn the commands on only in a VM
   whose programs you would let run in your page.
 - Every run starts Pyodide again and unpacks the packages it imports (or that `packages` preloads); how long that takes
   depends on the host: about a second for the interpreter alone, several more with pandas and Matplotlib.
 - A package that loads on import is read and unpacked synchronously, so the module's worker is busy while it loads (pandas
   and Matplotlib take a few seconds); a Ctrl+C meanwhile is raised once the load ends.
-- Without WebAssembly JSPI, `oxidevm.run`, `connect_unix` and `connect_tcp` raise `OSError(errno.ENOTSUP)`; Python's own
+- Without WebAssembly JSPI, `oxvm.run`, `connect_unix` and `connect_tcp` raise `OSError(errno.ENOTSUP)`; Python's own
   `socket` reaches services in the VM without it. Pyodide's own JSPI-based features (`pyodide.ffi.run_sync`, asyncio
   that blocks on JavaScript) are what they are in Pyodide on that browser.
 - The interactive interpreter is CPython's basic REPL only: no PyREPL (colours, multi-line editing, history, completion),
@@ -251,12 +255,12 @@ packages. `micropip` and installs from the network are out of scope.
   ends the process, so Python handlers installed for them with `signal.signal` are never called.
 - Ctrl+C while a program awaits asyncio work of its own (a top-level `await`, `asyncio.run`, a task's timer) is taken by
   Pyodide's event loop instead of the program, and the program stops responding; end it with Ctrl+\\ (SIGQUIT) or a kill.
-  `time.sleep`, the calls of the `oxidevm` module, reads and computation are interrupted as described above.
+  `time.sleep`, the calls of the `oxvm` module, reads and computation are interrupted as described above.
 - File times are kept to the millisecond (the VM's API takes a `Date`), and `os.utime` follows symbolic links.
 - Python threads, `subprocess`, `multiprocessing` and other things Emscripten cannot do are what they are in Pyodide;
-  `oxidevm.run` is how to start a native program.
+  `oxvm.run` is how to start a native program.
 - The module cancels cleanly when its process group is killed (`process.kill("SIGKILL", { scope: "process-group" })`); a
-  native child started with `oxidevm.run` survives a kill of the module's process alone.
+  native child started with `oxvm.run` survives a kill of the module's process alone.
 - A socket behaves like any socket: `sendall` waits when the other side is not reading and the buffers are full, so a client
   that sends a lot to a service that echoes it should read as it writes. For the network's own limits see [Network](#network).
 - Licences: see [NOTICES.txt](NOTICES.txt), [SOURCE-OFFER.md](SOURCE-OFFER.md) and the [licences](#licences) below. The
@@ -264,16 +268,16 @@ packages. `micropip` and installs from the network are out of scope.
 
 ## Develop it
 
-`@oxidevm/sdk` and `@oxidevm/cli` are exact devDependencies, installed from npm (see `AGENTS.md`, which also says how to
+`@oxvm/sdk` and `@oxvm/cli` are exact devDependencies, installed from npm (see `AGENTS.md`, which also says how to
 work against an SDK that is not published yet).
 
 ```sh
 pnpm install
 pnpm run fetch-upstream  # the mirrored runtime and wheels (about 29 MB)
-pnpm run check           # tsc (module, tests, scripts), eslint with no warnings, and oxidevm wasm build --check
+pnpm run check           # tsc (module, tests, scripts), eslint with no warnings, and oxvm wasm build --check
 pnpm test                # unit tests: the real Pyodide in Node, against fakes of the VM's files, processes and sockets
 pnpm run build           # dist/: module.json, adapter.mjs, the artifacts and SHA256SUMS
-pnpm run test:conformance  # oxidevm wasm test: the runner's contract, in Chromium
+pnpm run test:conformance  # oxvm wasm test: the runner's contract, in Chromium
 pnpm run test:browser    # the same module against the real engine in Chromium; see test/browser/harness.ts
 pnpm run notices         # regenerate NOTICES.txt and SOURCE-OFFER.md after changing the wheels or legal/
 python3.14 -I scripts/record-cpython-cli.py   # record CPython 3.14's command-line behaviour again (--check compares)
@@ -290,7 +294,7 @@ The unit tests need a Node with WebAssembly JSPI (Node 26, or Node 24 with `--ex
 | `src/python/hide-bridge.ts` | the JavaScript bridge that commands cannot import |
 | `src/python-loader.ts`, `src/artifact-fetch.ts`, `src/lock.ts` | starting Pyodide from the release's verified files |
 | `src/workspace-fs.ts` | Emscripten's file system over the VM's synchronous file API, and which trees Python sees |
-| `src/native-bridge.ts`, `src/socket-bridge.ts`, `src/python/` | `oxidevm.run`, `connect_unix`, `connect_tcp`, and the Python sources |
+| `src/native-bridge.ts`, `src/socket-bridge.ts`, `src/python/` | `oxvm.run`, `connect_unix`, `connect_tcp`, and the Python sources |
 | `src/net-bridge.ts`, `src/x509.ts`, `src/python/socket-patch.ts`, `src/python/ssl-patch.ts`, `scripts/record-cpython-net.py` | Python's network through the VM, and CPython's own behaviour that it is tested against |
 | `test/browser/relay/` | the relay test peer (from the SDK) and the throwaway PKI of the internet scenarios (`--internet`) |
 | `src/script.ts`, `src/guest.ts`, `src/stdio.ts` | running the program, process identity, standard streams |
@@ -304,17 +308,22 @@ Publishing changes what others can install, so it goes draft, verify, publish: t
 against its own `SHA256SUMS` before it becomes visible. The tag must name the version in `module.ts`.
 
 ```sh
-git tag v0.3.0 && git push origin v0.3.0
+git tag v0.3.1 && git push origin v0.3.1
 pnpm run build
-gh release create v0.3.0 dist/* --draft --verify-tag --title v0.3.0
-gh release download v0.3.0 --dir verify && (cd verify && sha256sum --check SHA256SUMS)
-gh release edit v0.3.0 --draft=false
+gh release create v0.3.1 dist/* --draft --verify-tag --title v0.3.1
+gh release download v0.3.1 --dir verify && (cd verify && sha256sum --check SHA256SUMS)
+gh release edit v0.3.1 --draft=false
 ```
 
-`pnpm run release` (`oxidevm wasm release --repo spacia-ai/oxidevm-pyodide`) prints these steps and runs none of them. The
+`pnpm run release` (`oxvm wasm release --repo spacia-ai/oxvm-pyodide`) prints these steps and runs none of them. The
 `release` workflow does the same in GitHub Actions, in two jobs: a read-only one fetches the upstream files and builds, and a
 second one, which installs nothing, drafts, verifies and publishes. The `ci` workflow runs on pushes to `main` and on pull
 requests, and `release` runs when a `v*` tag is pushed.
+
+## Changes in 0.3.1
+
+Uses `@oxvm/sdk` and the `oxvm` CLI. Python programs import `oxvm`; the supported `oxidevm` import forwards to the same functions.
+Capabilities, process authority, TLS verification, and the upstream Pyodide files remain unchanged.
 
 ## Changes in 0.3.0
 

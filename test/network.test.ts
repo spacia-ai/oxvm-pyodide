@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { NetError } from "@oxidevm/sdk/wasm";
+import { NetError } from "@oxvm/sdk/wasm";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { isRecord } from "../src/records.ts";
 import { WHEELS } from "../src/shipped.ts";

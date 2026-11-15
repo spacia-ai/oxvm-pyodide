@@ -1,4 +1,4 @@
-NOTICES for the oxidevm-pyodide release
+NOTICES for the oxvm-pyodide release
 ==============================================================================
 
 This release carries the Pyodide 314.0.7 runtime and 21 Python wheels exactly as their projects published them, without

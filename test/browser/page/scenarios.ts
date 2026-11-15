@@ -1,10 +1,10 @@
-import { createVM, defineImage } from "@oxidevm/sdk";
-import type { UserspaceVM } from "@oxidevm/sdk";
-import type { ModuleHandle } from "@oxidevm/sdk/wasm";
+import { createVM, defineImage } from "@oxvm/sdk";
+import type { UserspaceVM } from "@oxvm/sdk";
+import type { ModuleHandle } from "@oxvm/sdk/wasm";
 import { COMMAND_SCENARIOS, enableCommands } from "./scenarios-commands.ts";
 import type { CommandSwitch, EnabledCommands } from "./scenarios-commands.ts";
 import { filesBothWays, largeFiles, metadata, plot } from "./scenarios-files.ts";
-import { cancellation, exitStatuses, HAS_JSPI, identity, nativeRun, oxidevmWithoutJspi, packagesOption, pandas, standardStreams, startupTiming, tamperedArtifact } from "./scenarios-process.ts";
+import { cancellation, exitStatuses, HAS_JSPI, identity, nativeRun, oxvmWithoutJspi, packagesOption, pandas, standardStreams, startupTiming, tamperedArtifact } from "./scenarios-process.ts";
 import { INTERNET_SCENARIOS } from "./scenarios-internet.ts";
 import type { InternetConfig } from "./scenarios-internet.ts";
 import { NETWORK_SCENARIOS } from "./scenarios-network.ts";
@@ -41,13 +41,13 @@ const SCENARIOS: readonly Scenario[] = [
   ["files are shared both ways with native Linux, permissions included, while the module runs", filesBothWays],
   ["files of 20 MiB cross the module's transfer limit in both directions", largeFiles],
   ["chmod, truncate, symlink, shutil.copy and utime reach the VM's files", metadata],
-  // The oxidevm module waits for the VM with WebAssembly JSPI; without it (Firefox by default) it refuses precisely.
+  // The oxvm module waits for the VM with WebAssembly JSPI; without it (Firefox by default) it refuses precisely.
   ...(HAS_JSPI ? [
-    ["oxidevm.run runs native programs with input, status, timeout and output bounds", nativeRun],
+    ["oxvm.run runs native programs with input, status, timeout and output bounds", nativeRun],
     ["cancelling the module retires its native child in under 5 seconds", cancellation],
-  ] as const : [["without JSPI, the oxidevm module refuses with ENOTSUP and the rest of Python works", oxidevmWithoutJspi]] as const),
+  ] as const : [["without JSPI, the oxvm module refuses with ENOTSUP and the rest of Python works", oxvmWithoutJspi]] as const),
   ["matplotlib writes a valid PNG that Linux recognises", plot],
-  ...(HAS_JSPI ? [["oxidevm.connect_unix and connect_tcp talk to native services", sockets]] as const : []),
+  ...(HAS_JSPI ? [["oxvm.connect_unix and connect_tcp talk to native services", sockets]] as const : []),
   ["startup timing, for the record", startupTiming],
 ];
 
@@ -80,7 +80,7 @@ export async function runScenarios(config: ScenarioConfig, pyodide: ModuleHandle
   const record = (result: ScenarioResult): void => { results.push(result); report(result); };
   try {
     record({ name: "boot", ok: true, detail: `Userspace VM ready in ${String(Math.round(performance.now() - booting))} ms` });
-    await vm.workspace.createDirectory("_oxidevm").catch(() => undefined);
+    await vm.workspace.createDirectory("_oxvm").catch(() => undefined);
     const context: Context = { vm, pyodide, openVM: () => openVM(config), ...(commands === undefined ? {} : { commands }), ...(config.internet === undefined ? {} : { internet: config.internet }) };
     const selected = (name: string): boolean => config.only === undefined || name.includes(config.only);
     const attempt = async (name: string, run: (given: Context) => Promise<string>, given: Context): Promise<void> => {

@@ -13,7 +13,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { createServer } from "node:https";
 import { connect, type Socket } from "node:net";
 import type { Duplex } from "node:stream";
-import { decodeRelayFrame, encodeRelayFrame, RelayKind, type RelayFrame } from "../../../node_modules/@oxidevm/sdk/dist/runtime/workers/relay-wire.js";
+import { decodeRelayFrame, encodeRelayFrame, RelayKind, type RelayFrame } from "../../../node_modules/@oxvm/sdk/dist/runtime/workers/relay-wire.js";
 import { answerDns, type DnsTable } from "./dns.ts";
 import { acceptWebSocket, type WebSocketPeer } from "./websocket.ts";
 
@@ -105,6 +105,7 @@ export async function startRelayTestPeer(identity: { readonly key: string; reado
     response.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ version: 2, webSocketUrl: `wss://127.0.0.1:${String(port())}/v2/socket`, ticket, expiresAt: Date.now() + TICKET_MS }));
   }
   server.on("upgrade", (request: IncomingMessage, socket: Duplex, head: Buffer) => {
+    // Match the retained SDK wire contract until the relay and SDK migrate together.
     if (request.url !== "/v2/socket" || request.headers["sec-websocket-protocol"] !== "oxidevm-relay-v2") { socket.destroy(); return; }
     let session: ReturnType<typeof relaySession> | undefined;
     const peer = acceptWebSocket(request, socket, head, "oxidevm-relay-v2", {

@@ -1,4 +1,4 @@
-import type { Host } from "@oxidevm/sdk/wasm";
+import type { Host } from "@oxvm/sdk/wasm";
 import type { PackageName, ShippedFile } from "./shipped.ts";
 
 // The host members this module uses, named once. They come from the capabilities the manifest declares, so a change

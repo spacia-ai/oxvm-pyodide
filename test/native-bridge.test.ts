@@ -1,4 +1,4 @@
-import { kit } from "@oxidevm/sdk/wasm";
+import { kit } from "@oxvm/sdk/wasm";
 import { describe, expect, it } from "vitest";
 import { MAX_ARGUMENT_JSON_BYTES, nativeRunner } from "../src/native-bridge.ts";
 import type { NativeHost } from "../src/native-bridge.ts";

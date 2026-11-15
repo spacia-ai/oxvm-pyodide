@@ -59,7 +59,7 @@ describe("errors", () => {
     expect(lines).toContain('  File "/workspace/program.py", line 2, in inner');
     expect(lines).toContain('    raise ValueError("bad value")');
     expect(lines.at(-1)).toBe("ValueError: bad value");
-    expect(result.stderr).not.toMatch(/_pyodide|eval_code_async|oxidevm-runner|_base\.py/u);
+    expect(result.stderr).not.toMatch(/_pyodide|eval_code_async|oxvm-runner|_base\.py/u);
     // Frames appear from the program's outermost call to the failing line.
     expect(lines.findIndex(line => line.includes("line 7"))).toBeLessThan(lines.findIndex(line => line.includes("line 2")));
   });

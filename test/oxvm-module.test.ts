@@ -1,16 +1,16 @@
-import { LinuxError } from "@oxidevm/sdk/js-process";
+import { LinuxError } from "@oxvm/sdk/js-process";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { echoUpperCase } from "./support/fake-sockets.ts";
 import type { Child } from "./support/fake-process.ts";
 import { startGuest } from "./support/guest-fixture.ts";
 import type { GuestFixture } from "./support/guest-fixture.ts";
 
-// The Python module `oxidevm`, used the way a program uses it, in the real Pyodide against fakes of the VM's processes and
+// The Python module `oxvm`, used the way a program uses it, in the real Pyodide against fakes of the VM's processes and
 // sockets. (The same module is exercised against the real engine in test/browser.)
 
 const children = new Map<string, Child>();
 let guest: GuestFixture;
-const UNIX = "/workspace/_oxidevm/echo.sock";
+const UNIX = "/workspace/_oxvm/echo.sock";
 
 beforeAll(async () => {
   guest = await startGuest(argv => children.get(argv.join(" ")) ?? {});
@@ -24,23 +24,23 @@ afterAll(async () => { await guest.stop(); await guest.dispose(); });
 
 /** Runs `body` as a Python program and returns the text it printed; the program must succeed. */
 async function printed(body: string): Promise<string> {
-  const result = await guest.run(`import errno, oxidevm\nfrom pyodide.ffi import JsException\n${body}`);
+  const result = await guest.run(`import errno, oxvm\nfrom pyodide.ffi import JsException\n${body}`);
   expect(result.stderr).toBe("");
   expect(result.status).toBe(0);
   return result.stdout;
 }
 
-describe("oxidevm.run", () => {
+describe("oxvm.run", () => {
   it("starts a native program and returns what it printed, how it ended, and its process id", async () => {
     children.set("/bin/uname -m", { stdout: "x86_64\n" });
     const before = guest.process.spawned.length;
-    expect(await printed('result = oxidevm.run(["/bin/uname", "-m"])\nprint(result.pid, result.returncode, repr(result.stdout), repr(result.stderr))')).toBe(`${String(1000 + before)} 0 'x86_64\\n' ''\n`);
+    expect(await printed('result = oxvm.run(["/bin/uname", "-m"])\nprint(result.pid, result.returncode, repr(result.stdout), repr(result.stderr))')).toBe(`${String(1000 + before)} 0 'x86_64\\n' ''\n`);
     expect(guest.process.spawned.at(-1)).toMatchObject({ command: "/bin/uname", args: ["-m"], cwd: "/workspace" });
   });
 
-  it("works as `from oxidevm import run` and documents itself", async () => {
+  it("works as `from oxvm import run` and documents itself", async () => {
     children.set("/bin/true", {});
-    expect(await printed('from oxidevm import run\nprint(run(["/bin/true"]).returncode)\nprint(oxidevm.run.__doc__.splitlines()[0])\nprint(oxidevm.__file__.endswith("oxidevm.py"), sorted(oxidevm.__all__))'))
+    expect(await printed('from oxvm import run\nprint(run(["/bin/true"]).returncode)\nprint(oxvm.run.__doc__.splitlines()[0])\nprint(oxvm.__file__.endswith("oxvm.py"), sorted(oxvm.__all__))'))
       .toBe("0\nRun a native Linux program, wait for it, and return what it did.\nTrue ['Connection', 'connect_tcp', 'connect_unix', 'run']\n");
   });
 
@@ -48,10 +48,10 @@ describe("oxidevm.run", () => {
     children.set("/bin/sh -c exit 7", { stdout: "out", stderr: "boom", exit: { kind: "exited", code: 7 } });
     expect(await printed(`
 try:
-    oxidevm.run(["/bin/sh", "-c", "exit 7"])
+    oxvm.run(["/bin/sh", "-c", "exit 7"])
 except RuntimeError as error:
     print("raised:", error)
-failed = oxidevm.run(["/bin/sh", "-c", "exit 7"], check=False)
+failed = oxvm.run(["/bin/sh", "-c", "exit 7"], check=False)
 print((failed.stdout, failed.stderr, failed.returncode))
 `)).toBe("raised: Native command exited 7: boom\n('out', 'boom', 7)\n");
   });
@@ -60,21 +60,21 @@ print((failed.stdout, failed.stderr, failed.returncode))
     children.set("/bin/crash", { stderr: "Segmentation fault", exit: { kind: "signaled", signal: null, signalNumber: 11 } });
     expect(await printed(`
 try:
-    oxidevm.run(["/bin/crash"])
+    oxvm.run(["/bin/crash"])
 except RuntimeError as error:
     print("raised:", error)
-print(oxidevm.run(["/bin/crash"], check=False).returncode)
+print(oxvm.run(["/bin/crash"], check=False).returncode)
 `)).toBe("raised: Native command exited -11: Segmentation fault\n-11\n");
   });
 
   it("cuts standard error in the message at 4096 characters", async () => {
     children.set("/bin/noisy", { stderr: "e".repeat(5000), exit: { kind: "exited", code: 1 } });
-    expect(await printed('try:\n    oxidevm.run(["/bin/noisy"])\nexcept RuntimeError as error:\n    print(len(str(error)))')).toBe(`${String("Native command exited 1: ".length + 4096)}\n`);
+    expect(await printed('try:\n    oxvm.run(["/bin/noisy"])\nexcept RuntimeError as error:\n    print(len(str(error)))')).toBe(`${String("Native command exited 1: ".length + 4096)}\n`);
   });
 
   it("sends the input text to the program's standard input", async () => {
     children.set("/bin/cat", { stdout: "echoed" });
-    await printed('oxidevm.run(["/bin/cat"], input="typed " + "é" * 3)');
+    await printed('oxvm.run(["/bin/cat"], input="typed " + "é" * 3)');
     expect(guest.process.spawned.at(-1)?.input).toBe("typed ééé");
   });
 
@@ -83,7 +83,7 @@ print(oxidevm.run(["/bin/crash"], check=False).returncode)
     const count = guest.process.spawned.length;
     expect(await printed(`
 try:
-    oxidevm.run(["/bin/sh", "-c", "while :; do :; done"], timeout=0.03)
+    oxvm.run(["/bin/sh", "-c", "while :; do :; done"], timeout=0.03)
 except Exception as error:
     print(type(error).__name__, "timed out" in str(error))
 `)).toBe("JsException True\n");
@@ -93,19 +93,19 @@ except Exception as error:
   it("refuses output beyond 1 MiB and kills the program", async () => {
     children.set("/bin/head -c 1100000 /dev/zero", { stdout: new Uint8Array(1_100_000).fill(48), hang: true });
     const count = guest.process.spawned.length;
-    expect(await printed('try:\n    oxidevm.run(["/bin/head", "-c", "1100000", "/dev/zero"])\nexcept Exception as error:\n    print("output limit" in str(error))')).toBe("True\n");
+    expect(await printed('try:\n    oxvm.run(["/bin/head", "-c", "1100000", "/dev/zero"])\nexcept Exception as error:\n    print("output limit" in str(error))')).toBe("True\n");
     expect(guest.process.spawned.slice(count).map(child => child.signals)).toEqual([[9]]);
   });
 
   it("turns the timeout into whole milliseconds, 10 s by default, and refuses what the host refuses", async () => {
     children.set("/bin/true", {});
-    await printed('oxidevm.run(["/bin/true"])\noxidevm.run(["/bin/true"], timeout=0.07)\noxidevm.run(["/bin/true"], timeout=180)\noxidevm.run(["/bin/true"], timeout=0.0015)');
+    await printed('oxvm.run(["/bin/true"])\noxvm.run(["/bin/true"], timeout=0.07)\noxvm.run(["/bin/true"], timeout=180)\noxvm.run(["/bin/true"], timeout=0.0015)');
     expect(guest.nativeRequests.slice(-4).map(request => request.timeoutMs)).toEqual([10_000, 70, 180_000, 2]);
     const count = guest.process.spawned.length;
     expect(await printed(`
 for timeout in (0, -1, 181, 0.0004, float("nan")):
     try:
-        oxidevm.run(["/bin/true"], timeout=timeout)
+        oxvm.run(["/bin/true"], timeout=timeout)
         print("accepted", timeout)
     except Exception as error:
         print("refused", timeout, type(error).__name__)
@@ -118,7 +118,7 @@ for timeout in (0, -1, 181, 0.0004, float("nan")):
     expect(await printed(`
 for argv in ("/bin/true", [], ["relative"], ["/bin/true", None], ["/bin/true", "a\\0b"], ["/bin/true"] * 65, [1]):
     try:
-        oxidevm.run(argv)
+        oxvm.run(argv)
         print("accepted", argv)
     except Exception as error:
         print("refused", type(error).__name__)
@@ -128,16 +128,16 @@ for argv in ("/bin/true", [], ["relative"], ["/bin/true", None], ["/bin/true", "
 
   it("refuses input that is not text", async () => {
     const count = guest.process.spawned.length;
-    expect(await printed('for value in (b"bytes", 5, None):\n    try:\n        oxidevm.run(["/bin/true"], input=value)\n    except Exception as error:\n        print("refused", type(error).__name__)')).toBe("refused JsException\n".repeat(3));
+    expect(await printed('for value in (b"bytes", 5, None):\n    try:\n        oxvm.run(["/bin/true"], input=value)\n    except Exception as error:\n        print("refused", type(error).__name__)')).toBe("refused JsException\n".repeat(3));
     expect(guest.process.spawned).toHaveLength(count);
   });
 });
 
-describe("oxidevm.connect_unix and connect_tcp", () => {
+describe("oxvm.connect_unix and connect_tcp", () => {
   it("talks to a Unix socket service, and the context manager closes the connection", async () => {
     const before = guest.sockets.closed.length;
     expect(await printed(`
-with oxidevm.connect_unix("${UNIX}") as connection:
+with oxvm.connect_unix("${UNIX}") as connection:
     connection.sendall(b"ping")
     print(connection.recv(100))
 `)).toBe("b'PING'\n");
@@ -146,7 +146,7 @@ with oxidevm.connect_unix("${UNIX}") as connection:
 
   it("talks to loopback TCP by port, and to another address when given one", async () => {
     expect(await printed(`
-with oxidevm.connect_tcp(5432) as one, oxidevm.connect_tcp(5432, "::1") as two:
+with oxvm.connect_tcp(5432) as one, oxvm.connect_tcp(5432, "::1") as two:
     one.sendall(b"abc")
     two.sendall(b"def")
     print(one.recv(10), two.recv(10))
@@ -156,7 +156,7 @@ with oxidevm.connect_tcp(5432) as one, oxidevm.connect_tcp(5432, "::1") as two:
 
   it("accepts any bytes-like object", async () => {
     expect(await printed(`
-with oxidevm.connect_unix("${UNIX}") as connection:
+with oxvm.connect_unix("${UNIX}") as connection:
     for data in (b"a", bytearray(b"b"), memoryview(b"c")):
         connection.sendall(data)
         print(connection.recv(10), end=" ")
@@ -165,14 +165,14 @@ with oxidevm.connect_unix("${UNIX}") as connection:
 
   it("returns b'' when the service has closed the connection, and as many bytes as were asked for at most", async () => {
     expect(await printed(`
-with oxidevm.connect_tcp(7000) as connection:
+with oxvm.connect_tcp(7000) as connection:
     print(connection.recv(2), connection.recv(100), connection.recv(100))
 `)).toBe("b'he' b'llo' b''\n");
   });
 
   it("moves a megabyte in each direction", async () => {
     expect(await printed(`
-with oxidevm.connect_unix("${UNIX}") as connection:
+with oxvm.connect_unix("${UNIX}") as connection:
     payload = bytes(range(97, 123)) * 40_000
     connection.sendall(payload)
     received = bytearray()
@@ -189,8 +189,8 @@ def attempt(connect):
         connect()
     except OSError as error:
         return (type(error).__name__, errno.errorcode[error.errno], str(error))
-print(attempt(lambda: oxidevm.connect_unix("/workspace/_oxidevm/none.sock")))
-print(attempt(lambda: oxidevm.connect_tcp(6000)))
+print(attempt(lambda: oxvm.connect_unix("/workspace/_oxvm/none.sock")))
+print(attempt(lambda: oxvm.connect_tcp(6000)))
 `)).toBe("('FileNotFoundError', 'ENOENT', '[Errno 44] No such file or directory')\n('ConnectionRefusedError', 'ECONNREFUSED', '[Errno 14] Connection refused')\n");
   });
 
@@ -200,7 +200,7 @@ print(attempt(lambda: oxidevm.connect_tcp(6000)))
     guest.sockets.sockets.write = () => Promise.reject(new LinuxError(32));
     try {
       expect(await printed(`
-with oxidevm.connect_tcp(7002) as connection:
+with oxvm.connect_tcp(7002) as connection:
     try:
         connection.sendall(b"hello")
     except BrokenPipeError as error:
@@ -214,7 +214,7 @@ with oxidevm.connect_tcp(7002) as connection:
   it("hands the bridge timeouts in whole milliseconds, at least one: a very short timeout never turns into none", async () => {
     guest.socketRequests.length = 0;
     await printed(`
-with oxidevm.connect_tcp(5432, timeout=0.0001) as connection:
+with oxvm.connect_tcp(5432, timeout=0.0001) as connection:
     connection.settimeout(0.0001)
     connection.sendall(b"a")
     connection.settimeout(2.5)
@@ -228,7 +228,7 @@ with oxidevm.connect_tcp(5432, timeout=0.0001) as connection:
   it("asks for at most a megabyte in one receive, whatever size the program names", async () => {
     guest.socketRequests.length = 0;
     expect(await printed(`
-with oxidevm.connect_unix("${UNIX}") as connection:
+with oxvm.connect_unix("${UNIX}") as connection:
     connection.sendall(b"abc")
     print(connection.recv(50 * 1024 * 1024))
 `)).toBe("b'ABC'\n");
@@ -238,10 +238,10 @@ with oxidevm.connect_unix("${UNIX}") as connection:
   it("times out a connection attempt and, once settimeout is used, a silent read", async () => {
     expect(await printed(`
 try:
-    oxidevm.connect_tcp(9, timeout=0.05)
+    oxvm.connect_tcp(9, timeout=0.05)
 except TimeoutError as error:
     print("connect timed out", error.errno == errno.ETIMEDOUT)
-with oxidevm.connect_tcp(7001) as connection:
+with oxvm.connect_tcp(7001) as connection:
     print(connection.gettimeout())
     connection.settimeout(0.05)
     print(connection.gettimeout())
@@ -263,17 +263,17 @@ def refuse(call):
         return "accepted"
     except Exception as error:
         return type(error).__name__
-print(refuse(lambda: oxidevm.connect_unix("relative.sock")))
-print(refuse(lambda: oxidevm.connect_unix(5)))
-print(refuse(lambda: oxidevm.connect_unix(b"/bytes")))
-print(refuse(lambda: oxidevm.connect_unix("${UNIX}", timeout=0)))
-print(refuse(lambda: oxidevm.connect_tcp(0)))
-print(refuse(lambda: oxidevm.connect_tcp(65536)))
-print(refuse(lambda: oxidevm.connect_tcp("5432")))
-print(refuse(lambda: oxidevm.connect_tcp(True)))
-print(refuse(lambda: oxidevm.connect_tcp(5432, "")))
-print(refuse(lambda: oxidevm.connect_tcp(5432, 5)))
-print(refuse(lambda: oxidevm.connect_tcp(5432, timeout=-1)))
+print(refuse(lambda: oxvm.connect_unix("relative.sock")))
+print(refuse(lambda: oxvm.connect_unix(5)))
+print(refuse(lambda: oxvm.connect_unix(b"/bytes")))
+print(refuse(lambda: oxvm.connect_unix("${UNIX}", timeout=0)))
+print(refuse(lambda: oxvm.connect_tcp(0)))
+print(refuse(lambda: oxvm.connect_tcp(65536)))
+print(refuse(lambda: oxvm.connect_tcp("5432")))
+print(refuse(lambda: oxvm.connect_tcp(True)))
+print(refuse(lambda: oxvm.connect_tcp(5432, "")))
+print(refuse(lambda: oxvm.connect_tcp(5432, 5)))
+print(refuse(lambda: oxvm.connect_tcp(5432, timeout=-1)))
 `)).toBe("ValueError\nTypeError\nValueError\nValueError\nValueError\nValueError\nValueError\nValueError\nValueError\nValueError\nValueError\n");
     expect(guest.sockets.families).toHaveLength(families);
   });
@@ -286,7 +286,7 @@ def refuse(call):
         return "accepted"
     except Exception as error:
         return type(error).__name__ + ("/" + errno.errorcode[error.errno] if isinstance(error, OSError) else "")
-connection = oxidevm.connect_unix("${UNIX}")
+connection = oxvm.connect_unix("${UNIX}")
 print(refuse(lambda: connection.sendall("text")))
 print(refuse(lambda: connection.recv(0)))
 print(refuse(lambda: connection.recv(-5)))
@@ -309,11 +309,11 @@ print(refuse(lambda: connection.recv(1)))
 held = []
 try:
     for _ in range(40):
-        held.append(oxidevm.connect_unix("${UNIX}"))
+        held.append(oxvm.connect_unix("${UNIX}"))
 except OSError as error:
     print(len(held), errno.errorcode[error.errno])
 held[0].close()
-held.append(oxidevm.connect_unix("${UNIX}"))
+held.append(oxvm.connect_unix("${UNIX}"))
 print(len(held))
 `)).toBe("32 EMFILE\n33\n");
     expect(guest.sockets.families.length - opened).toBe(33);
@@ -323,20 +323,20 @@ print(len(held))
   });
 });
 
-describe("the oxidevm module without WebAssembly JSPI", () => {
+describe("the oxvm module without WebAssembly JSPI", () => {
   it("refuses run, connect_unix and connect_tcp with ENOTSUP before anything starts, where Python cannot wait", () => {
     const natives = guest.nativeRequests.length, sockets = guest.socketRequests.length;
-    const seen: unknown = guest.py.runPython(`import errno, json, oxidevm
+    const seen: unknown = guest.py.runPython(`import errno, json, oxvm
 from pyodide.ffi import can_run_sync
 seen = [can_run_sync()]
-for call in (lambda: oxidevm.run(["/bin/true"]), lambda: oxidevm.connect_unix("/workspace/_oxidevm/s.sock"), lambda: oxidevm.connect_tcp(8080)):
+for call in (lambda: oxvm.run(["/bin/true"]), lambda: oxvm.connect_unix("/workspace/_oxvm/s.sock"), lambda: oxvm.connect_tcp(8080)):
     try:
         call()
         seen.append("ran")
     except OSError as error:
         seen.append([error.errno == errno.ENOTSUP, error.strerror])
 json.dumps(seen)`);
-    const message = "the oxidevm module waits for the VM with WebAssembly JavaScript Promise Integration (JSPI), which this browser does not provide; Python's own socket module reaches services in the VM without it";
+    const message = "the oxvm module waits for the VM with WebAssembly JavaScript Promise Integration (JSPI), which this browser does not provide; Python's own socket module reaches services in the VM without it";
     expect(JSON.parse(String(seen))).toEqual([false, [true, message], [true, message], [true, message]]);
     expect(guest.nativeRequests).toHaveLength(natives);
     expect(guest.socketRequests).toHaveLength(sockets);

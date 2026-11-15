@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import { lstat, mkdir, readFile, readdir, readlink, stat, symlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { join, relative } from "node:path";
-import { LinuxError } from "@oxidevm/sdk/js-process";
+import { LinuxError } from "@oxvm/sdk/js-process";
 import type { PyodideInterface } from "pyodide";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { MAX_TRANSFER_BYTES } from "../src/workspace-fs.ts";

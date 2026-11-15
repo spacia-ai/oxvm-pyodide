@@ -1,4 +1,4 @@
-import type { Terminals } from "@oxidevm/sdk/wasm";
+import type { Terminals } from "@oxvm/sdk/wasm";
 import type { PyodideInterface } from "pyodide";
 import type { FileDescriptor, KitErrno, SyncFiles } from "./host-types.ts";
 

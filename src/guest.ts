@@ -7,7 +7,7 @@ import { SOCKET_PATCH_SOURCE } from "./python/socket-patch.ts";
 import { SSL_PATCH_SOURCE } from "./python/ssl-patch.ts";
 import type { NetBridge } from "./net-bridge.ts";
 import { PROCESS_PATCH_SOURCE } from "./python/process-patch.ts";
-import { OXIDEVM_MODULE_SOURCE } from "./python/oxidevm-module.ts";
+import { OXVM_MODULE_SOURCE } from "./python/oxvm-module.ts";
 import { SLEEP_PATCH_SOURCE } from "./python/sleep-patch.ts";
 import type { Interrupts } from "./signals.ts";
 import type { SocketBridge } from "./socket-bridge.ts";
@@ -59,11 +59,11 @@ export interface GuestBridges {
 }
 
 /**
- * Makes the VM visible to Python: the JS functions behind `oxidevm.run` and the sockets, the `oxidevm` module itself,
+ * Makes the VM visible to Python: the JS functions behind `oxvm.run` and the sockets, the `oxvm` module itself,
  * the real process id, user, group and working directory, a `time.sleep` that Ctrl+C ends, and, with `packages`, the
  * import hook that loads a shipped package when the program imports it, and, with `net`, names and TLS for `socket` and
  * `ssl` through the VM. Python code never sees the
- * bridge module's name as part of a contract; it is private to the `oxidevm` module and the patches.
+ * bridge module's name as part of a contract; it is private to the `oxvm` module and the patches.
  */
 export function installGuest(py: PyodideInterface, identity: ProcessIdentity, bridges: GuestBridges): void {
   const { sockets, interrupts, net } = bridges;
@@ -73,7 +73,7 @@ export function installGuest(py: PyodideInterface, identity: ProcessIdentity, br
   const held = <T>(waiting: Promise<T>): Promise<Outcome<T>> => waiting
     .then((value): Outcome<T> => ({ ok: true, value }), (error: unknown): Outcome<T> => ({ ok: false, error }))
     .finally(() => { interrupts.hold(); });
-  py.registerJsModule("_oxidevm_bridge", {
+  py.registerJsModule("_oxvm_bridge", {
     run: (argumentsJSON: unknown, input: unknown, timeoutMs: unknown) => held(bridges.run(argumentsJSON, input, timeoutMs)),
     connect: (kind: unknown, target: unknown, port: unknown, timeoutMs: unknown) => held(sockets.connect(kind, target, port, timeoutMs)),
     send: (handle: unknown, data: unknown, timeoutMs: unknown) => held(sockets.send(handle, data, timeoutMs)),
@@ -108,7 +108,7 @@ export function installGuest(py: PyodideInterface, identity: ProcessIdentity, br
     // Raises the failure of a wait in Python, as the JsException it would have been.
     fail: (error: unknown) => { throw error; },
   });
-  py.registerJsModule("_oxidevm_process", { pid: identity.pid, uid: identity.uid, gid: identity.gid, cwd: identity.cwd });
+  py.registerJsModule("_oxvm_process", { pid: identity.pid, uid: identity.uid, gid: identity.gid, cwd: identity.cwd });
   py.runPython(PROCESS_PATCH_SOURCE);
   runIsolated(py, SLEEP_PATCH_SOURCE);
   if (net !== undefined) {
@@ -117,18 +117,20 @@ export function installGuest(py: PyodideInterface, identity: ProcessIdentity, br
     runIsolated(py, HTTP_CLIENTS_PATCH_SOURCE);
   }
   if (bridges.packages !== undefined) {
-    py.registerJsModule("_oxidevm_packages", { imports: Object.fromEntries(bridges.packages.imports), loaded: [...bridges.packages.loaded] });
+    py.registerJsModule("_oxvm_packages", { imports: Object.fromEntries(bridges.packages.imports), loaded: [...bridges.packages.loaded] });
     runIsolated(py, LAZY_PACKAGES_SOURCE);
   }
   const sitePackages: unknown = py.runPython("import sysconfig\nsysconfig.get_path('purelib')");
   if (typeof sitePackages !== "string") throw new Error("Pyodide did not report its site-packages directory");
-  py.FS.writeFile(`${sitePackages}/oxidevm.py`, OXIDEVM_MODULE_SOURCE);
+  py.FS.writeFile(`${sitePackages}/oxvm.py`, OXVM_MODULE_SOURCE);
+  // Keep one API owner until supported legacy clients pass their announced retirement date.
+  py.FS.writeFile(`${sitePackages}/oxidevm.py`, "from oxvm import *\nfrom oxvm import __all__\n");
   py.runPython("import importlib\nimportlib.invalidate_caches()");
 }
 
 /**
  * Hides Pyodide's bridge to JavaScript from the program, which a program started as a command must not import (engine
- * ADR 0027): see src/python/hide-bridge.ts. Call it after `installGuest`, whose `oxidevm` module it imports first.
+ * ADR 0027): see src/python/hide-bridge.ts. Call it after `installGuest`, whose `oxvm` module it imports first.
  */
 export function hideJavaScript(py: PyodideInterface): void {
   runIsolated(py, HIDE_BRIDGE_SOURCE);

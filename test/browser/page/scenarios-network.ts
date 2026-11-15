@@ -6,7 +6,7 @@ import { Capture } from "./support.ts";
 // in the VM (the image's /usr/bin/python3), the module's python3 reaches them through its own VM sockets, and the
 // internet is refused. HTTPS to the internet needs a relay; that run is recorded separately (README.md, Network).
 
-const WORK = "/workspace/_oxidevm";
+const WORK = "/workspace/_oxvm";
 
 /** A self-signed certificate for localhost that the VM does not trust (made for this test with openssl; not a secret). */
 const CERTIFICATE = `-----BEGIN CERTIFICATE-----
@@ -37,7 +37,7 @@ async function shell(context: Context, line: string): Promise<Shell> {
 
 /** Starts a native Python server in the VM and waits until it prints its ready line. */
 async function nativeServer(context: Context, script: string, ready: string): Promise<{ stop(): Promise<void> }> {
-  await context.vm.workspace.writeText(`_oxidevm/${ready}.py`, script);
+  await context.vm.workspace.writeText(`_oxvm/${ready}.py`, script);
   const handle = await context.vm.spawn({ command: "/usr/bin/python3", args: [`${WORK}/${ready}.py`], cwd: WORK });
   const output = new Capture(handle.stdout);
   // The image's own CPython starts its server; under Firefox's WebAssembly that has taken over 60 s on a busy host.
@@ -70,8 +70,8 @@ export async function networkVmHttp(context: Context): Promise<string> {
 }
 
 export async function networkVmTls(context: Context): Promise<string> {
-  await context.vm.workspace.writeText("_oxidevm/tls-cert.pem", CERTIFICATE);
-  await context.vm.workspace.writeText("_oxidevm/tls-key.pem", KEY);
+  await context.vm.workspace.writeText("_oxvm/tls-cert.pem", CERTIFICATE);
+  await context.vm.workspace.writeText("_oxvm/tls-key.pem", KEY);
   const server = await nativeServer(context, `import socket, ssl\ncontext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)\ncontext.load_cert_chain('${WORK}/tls-cert.pem', '${WORK}/tls-key.pem')\nlistener = socket.create_server(('127.0.0.1', 8443))\nprint('tls-ready', flush=True)\nwhile True:\n    connection, _ = listener.accept()\n    try:\n        with context.wrap_socket(connection, server_side=True) as secured:\n            secured.recv(100)\n    except (ssl.SSLError, OSError):\n        pass\n`, "tls-ready");
   try {
     const result = await shell(context, "python3 -c \"import socket, ssl\ntry:\n    ssl.create_default_context().wrap_socket(socket.create_connection(('localhost', 8443)), server_hostname='localhost')\nexcept ssl.SSLCertVerificationError as error:\n    print(error.reason, str(error).startswith('[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: '))\"");
@@ -85,7 +85,7 @@ export async function networkVmTls(context: Context): Promise<string> {
 export async function networkInterruptRecv(context: Context): Promise<string> {
   const server = await nativeServer(context, "import socket, time\nlistener = socket.create_server(('127.0.0.1', 8766))\nprint('silent-ready', flush=True)\nkept = []\nwhile True:\n    kept.append(listener.accept()[0])\n", "silent-ready");
   try {
-    await context.vm.workspace.writeText("_oxidevm/waits.py", "import socket\nconnection = socket.create_connection(('127.0.0.1', 8766))\nprint('connected', flush=True)\nconnection.recv(10)\n");
+    await context.vm.workspace.writeText("_oxvm/waits.py", "import socket\nconnection = socket.create_connection(('127.0.0.1', 8766))\nprint('connected', flush=True)\nconnection.recv(10)\n");
     const handle = await context.vm.spawn({ command: "/bin/sh", args: ["-i"], cwd: WORK, terminal: { columns: 100, rows: 30 } });
     const writer = handle.stdin.getWriter(), output = new Capture(handle.output);
     await within("typing the command", 30_000, writer.write(encoder.encode(`NO_COLOR=1 python3 ${WORK}/waits.py\n`)));
