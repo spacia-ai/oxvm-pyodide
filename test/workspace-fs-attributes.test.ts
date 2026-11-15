@@ -1,6 +1,6 @@
 import { stat, symlink, writeFile, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { LinuxError } from "@oxidevm/sdk/js-process";
+import { LinuxError } from "@oxvm/sdk/js-process";
 import type { PyodideInterface } from "pyodide";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { field } from "./support/decode.ts";

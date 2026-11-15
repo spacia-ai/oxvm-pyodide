@@ -1,4 +1,4 @@
-import type { CommandHooks, CommandIO } from "@oxidevm/sdk/wasm";
+import type { CommandHooks, CommandIO } from "@oxvm/sdk/wasm";
 import { helpText, parseCommandLine, usageError, versionText } from "./cli.ts";
 import type { CommandLine } from "./cli.ts";
 import { guestProcess } from "./identity.ts";
@@ -61,7 +61,7 @@ export function createCommand(host: CommandHost, engine: Engine = bundledEngine)
   // The VM's own authorities, so that a program's CA bundle adds only those the VM lacks (src/trust.ts).
   const vmStore = (): Uint8Array | undefined => { try { return host.fs.readFile("/etc/ssl/cert.pem", MAX_TRUST_STORE_BYTES); } catch { return undefined; } };
   const net = netBridge(host, error => host.kit.net.errno(error), vmStore);
-  const report = (error: unknown): void => { host.log(JSON.stringify({ oxidevm: "log", module: "pyodide", event: "workspace-io", message: error instanceof Error ? error.message : String(error) })); };
+  const report = (error: unknown): void => { host.log(JSON.stringify({ oxvm: "log", module: "pyodide", event: "workspace-io", message: error instanceof Error ? error.message : String(error) })); };
   return {
     async main(io) {
       const launch = launchOf(io);

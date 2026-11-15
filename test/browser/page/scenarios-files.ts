@@ -128,7 +128,7 @@ print(json.dumps({
 export async function plot(context: Context): Promise<string> {
   const { vm } = context;
   const result = await run(context, `import os
-os.environ["MPLCONFIGDIR"] = "/workspace/_oxidevm/matplotlib"
+os.environ["MPLCONFIGDIR"] = "/workspace/_oxvm/matplotlib"
 os.makedirs("/workspace/plots", exist_ok=True)
 import pandas as pd
 frame = pd.DataFrame({"country": ["Netherlands", "Germany", "France"], "revenue": [299, 119, 99]})

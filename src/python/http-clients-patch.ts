@@ -12,13 +12,13 @@ import importlib.util as _util
 import sys as _sys
 
 _REPLACEMENTS = {
-    "urllib3.contrib.emscripten": '''"""urllib3's browser-fetch connections, left out: in an OxideVM module urllib3 uses the VM's sockets."""
+    "urllib3.contrib.emscripten": '''"""urllib3's browser-fetch connections, left out: in an OXVM module urllib3 uses the VM's sockets."""
 
 
 def inject_into_urllib3():
     """Nothing to inject: urllib3 keeps its own connections over socket and ssl."""
 ''',
-    "httpx._transports.jsfetch": '''"""httpx's browser-fetch transports, as its httpcore transports: in an OxideVM module httpx uses the VM's sockets."""
+    "httpx._transports.jsfetch": '''"""httpx's browser-fetch transports, as its httpcore transports: in an OXVM module httpx uses the VM's sockets."""
 
 from .httpcore import AsyncHTTPCoreTransport as AsyncJavascriptFetchTransport
 from .httpcore import HTTPCoreTransport as JavascriptFetchTransport
@@ -36,7 +36,7 @@ class _SourceLoader(_abc.Loader):
         return None
 
     def exec_module(self, module):
-        exec(compile(self._source, "<oxidevm " + module.__name__ + ">", "exec"), module.__dict__)
+        exec(compile(self._source, "<oxvm " + module.__name__ + ">", "exec"), module.__dict__)
 
 
 class _SocketHttpClients(_abc.MetaPathFinder):

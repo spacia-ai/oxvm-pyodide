@@ -1,11 +1,11 @@
 import "./src/module-worker-scope.ts";
-import { defineModule } from "@oxidevm/sdk/wasm";
+import { defineModule } from "@oxvm/sdk/wasm";
 import { createCommand } from "./src/command.ts";
 
 export default defineModule({
   manifest: {
     id: "pyodide",
-    version: "0.3.0",
+    version: "0.3.1",
     abi: "emscripten",
     artifacts: [
       { name: "pyodide.asm.wasm", from: "upstream/pyodide.asm.wasm" },

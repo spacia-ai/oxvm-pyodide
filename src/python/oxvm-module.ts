@@ -1,20 +1,20 @@
 /**
- * The source of the Python module `oxidevm`, which programs run by this module import to reach the Linux system around
+ * The source of the Python module `oxvm`, which programs run by this module import to reach the Linux system around
  * them. It is written into Pyodide's file system and imported like any other module, so tracebacks show its lines.
- * It talks to the JS functions of `src/native-bridge.ts` and `src/socket-bridge.ts`, registered as `_oxidevm_bridge`.
+ * It talks to the JS functions of `src/native-bridge.ts` and `src/socket-bridge.ts`, registered as `_oxvm_bridge`.
  */
-export const OXIDEVM_MODULE_SOURCE = `"""Reach the Linux system that this Python program runs next to.
+export const OXVM_MODULE_SOURCE = `"""Reach the Linux system that this Python program runs next to.
 
-The program runs as a WebAssembly Python (Pyodide) module inside an OxideVM page. It shares the VM's files, process ids
+The program runs as a WebAssembly Python (Pyodide) module inside an OXVM page. It shares the VM's files, process ids
 and sockets with the native Linux programs of the same VM, and this module is how it starts those programs and talks to
 the services they listen with.
 
-    import oxidevm
+    import oxvm
 
-    result = oxidevm.run(["/bin/uname", "-m"])
+    result = oxvm.run(["/bin/uname", "-m"])
     print(result.stdout)
 
-    with oxidevm.connect_unix("/workspace/_oxidevm/service.sock") as connection:
+    with oxvm.connect_unix("/workspace/_oxvm/service.sock") as connection:
         connection.sendall(b"ping\\\\n")
         print(connection.recv(100))
 """
@@ -24,14 +24,14 @@ import json as _json
 import os as _os
 import types as _types
 
-import _oxidevm_bridge as _bridge
+import _oxvm_bridge as _bridge
 from pyodide.ffi import can_run_sync, run_sync, to_js
 
 __all__ = ["Connection", "connect_tcp", "connect_unix", "run"]
 
 _MAX_RECV = 1024 * 1024
 _NO_JSPI = (
-    "the oxidevm module waits for the VM with WebAssembly JavaScript Promise Integration (JSPI), which this browser does"
+    "the oxvm module waits for the VM with WebAssembly JavaScript Promise Integration (JSPI), which this browser does"
     " not provide; Python's own socket module reaches services in the VM without it"
 )
 
@@ -152,7 +152,7 @@ class Connection:
 
 
 def connect_unix(path, *, timeout=30.0):
-    """Connect to the Unix socket at an absolute path (for example under /workspace/_oxidevm/).
+    """Connect to the Unix socket at an absolute path (for example under /workspace/_oxvm/).
 
     timeout limits only the connection attempt; use settimeout for later reads and writes.
     """

@@ -1,12 +1,12 @@
-import { LinuxError } from "@oxidevm/sdk/js-process";
-import { kit } from "@oxidevm/sdk/wasm";
+import { LinuxError } from "@oxvm/sdk/js-process";
+import { kit } from "@oxvm/sdk/wasm";
 import { describe, expect, it } from "vitest";
 import { MAX_OPEN_SOCKETS, MAX_RECV_BYTES, socketBridge, SocketFailure } from "../src/socket-bridge.ts";
 import type { SocketBridge, SocketHost } from "../src/socket-bridge.ts";
 import { echoUpperCase, fakeSockets } from "./support/fake-sockets.ts";
 import type { FakeSockets, Peer } from "./support/fake-sockets.ts";
 
-const UNIX = "/workspace/_oxidevm/echo.sock";
+const UNIX = "/workspace/_oxvm/echo.sock";
 const text = (bytes: Uint8Array): string => new TextDecoder().decode(bytes);
 const bytes = (value: string): Uint8Array => new TextEncoder().encode(value);
 
@@ -42,7 +42,7 @@ describe("connecting", () => {
 
   it("names the errno of a refused connection, as the symbolic name Python looks up", async () => {
     const { bridge, fake } = setup();
-    expect(await failure(bridge.connect("unix", "/workspace/_oxidevm/missing.sock", 0, 1000))).toEqual({ code: "ENOENT", message: "No such file or directory" });
+    expect(await failure(bridge.connect("unix", "/workspace/_oxvm/missing.sock", 0, 1000))).toEqual({ code: "ENOENT", message: "No such file or directory" });
     expect(await failure(bridge.connect("tcp", "127.0.0.1", 6000, 1000))).toEqual({ code: "ECONNREFUSED", message: "Connection refused" });
     // A failed attempt does not leak its descriptor.
     expect(fake.closed).toHaveLength(2);
@@ -236,7 +236,7 @@ describe("closing", () => {
     await expect(bridge.close(first)).resolves.toBeUndefined();
     await expect(bridge.closeAll()).resolves.toBeUndefined();
     // Releasing the descriptor of the attempt that failed fails too; the program still learns why the attempt failed.
-    expect((await failure(bridge.connect("unix", "/workspace/_oxidevm/missing.sock", 0, 1000))).code).toBe("ENOENT");
+    expect((await failure(bridge.connect("unix", "/workspace/_oxvm/missing.sock", 0, 1000))).code).toBe("ENOENT");
   });
 
   it("closes every socket that is still open when the program ends", async () => {

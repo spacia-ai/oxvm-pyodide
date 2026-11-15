@@ -1,15 +1,15 @@
 // The real-engine test of the module, in Chromium. It does what an application developer does, then runs the result:
-//   1. builds the module (`oxidevm wasm build`) unless --no-build;
-//   2. installs the release into a fresh project with the real CLI (`oxidevm wasm add file:… --yes`), which stages the
-//      files and generates the typed handle, and checks that `oxidevm wasm doctor` passes;
+//   1. builds the module (`oxvm wasm build`) unless --no-build;
+//   2. installs the release into a fresh project with the real CLI (`oxvm wasm add file:… --yes`), which stages the
+//      files and generates the typed handle, and checks that `oxvm wasm doctor` passes;
 //   3. type-checks the page's code against that handle with strict compiler flags;
 //   4. builds the page with Vite, serves it with the SDK's pinned engine release and a signed Userspace image that has
 //      python3 (pandas and matplotlib are not needed natively), and drives Chromium through the scenarios.
 //
 //   pnpm run build   # or let the harness build
-//   OXIDEVM_TEST_USERSPACE_IMAGE=<image reference JSON> OXIDEVM_TEST_USERSPACE_IMAGE_DIR=<bundle dist> pnpm run test:browser
+//   OXVM_TEST_USERSPACE_IMAGE=<image reference JSON> OXVM_TEST_USERSPACE_IMAGE_DIR=<bundle dist> pnpm run test:browser
 //
-// Optional: OXIDEVM_ENGINE_DIR, OXIDEVM_ENGINE_COMPLIANCE_DIR (default: ~/.cache/oxidevm/engine/...), OXIDEVM_VERBOSE=1
+// Optional: OXVM_ENGINE_DIR, OXVM_ENGINE_COMPLIANCE_DIR (default: ~/.cache/oxidevm/engine/...), OXVM_VERBOSE=1
 // (page console output), --only <text> (run the scenarios whose name contains it), --keep (keep the scratch directory),
 // --no-build (use the existing dist/), --internet (also start a throwaway PKI, HTTPS servers and the relay test peer of
 // test/browser/relay/, and run the internet scenarios through it), --repeat <n> (run the selected scenarios n times, each
@@ -23,7 +23,7 @@ import type { Server } from "node:http";
 import { homedir } from "node:os";
 import { dirname, extname, join, resolve } from "node:path";
 import { parseArgs, promisify } from "node:util";
-import { decodeProjectConfig, getSDKRelease, pinnedEngineCompliance } from "@oxidevm/sdk/image-builder";
+import { decodeProjectConfig, getSDKRelease, pinnedEngineCompliance } from "@oxvm/sdk/image-builder";
 import { chromium, firefox } from "playwright-core";
 import { build } from "vite";
 import { relayIdentity, startInternet } from "./relay/internet.ts";
@@ -48,14 +48,14 @@ interface Inputs {
 
 /** Finds the engine release, its compliance files and the signed image, and says what is missing. */
 async function locateInputs(environment: NodeJS.ProcessEnv): Promise<Inputs> {
-  const imageFile = environment["OXIDEVM_TEST_USERSPACE_IMAGE"], imageDir = environment["OXIDEVM_TEST_USERSPACE_IMAGE_DIR"];
+  const imageFile = environment["OXVM_TEST_USERSPACE_IMAGE"], imageDir = environment["OXVM_TEST_USERSPACE_IMAGE_DIR"];
   if (imageFile === undefined || imageDir === undefined) {
-    throw new Error("Set OXIDEVM_TEST_USERSPACE_IMAGE (an image reference JSON) and OXIDEVM_TEST_USERSPACE_IMAGE_DIR (its bundle directory).");
+    throw new Error("Set OXVM_TEST_USERSPACE_IMAGE (an image reference JSON) and OXVM_TEST_USERSPACE_IMAGE_DIR (its bundle directory).");
   }
   const engineId = getSDKRelease().engineRelease.replace(/^sha256:/u, "");
-  const engineDir = environment["OXIDEVM_ENGINE_DIR"] ?? join(homedir(), ".cache/oxidevm/engine", engineId);
+  const engineDir = environment["OXVM_ENGINE_DIR"] ?? join(homedir(), ".cache/oxidevm/engine", engineId);
   const compliance = pinnedEngineCompliance();
-  const complianceDir = compliance === null ? undefined : environment["OXIDEVM_ENGINE_COMPLIANCE_DIR"] ?? join(homedir(), ".cache/oxidevm/engine/compliance", compliance.sha256);
+  const complianceDir = compliance === null ? undefined : environment["OXVM_ENGINE_COMPLIANCE_DIR"] ?? join(homedir(), ".cache/oxidevm/engine/compliance", compliance.sha256);
   for (const path of [imageFile, imageDir, engineDir, ...(complianceDir === undefined ? [] : [complianceDir])]) await stat(path);
   const imageReference: unknown = JSON.parse(await readFile(imageFile, "utf8"));
   return { imageReference, imageDir, engineDir, complianceDir };
@@ -80,7 +80,7 @@ interface Served {
  * what was fetched while it ran.
  */
 const MODULE_FRAME_PATH = "/engine/module-frame/";
-const MODULE_FRAME_DIR = join(root, "node_modules/@oxidevm/sdk/assets/module-frame");
+const MODULE_FRAME_DIR = join(root, "node_modules/@oxvm/sdk/assets/module-frame");
 
 /** The module frame's response headers, from the SDK's `frame.json`. */
 async function moduleFrameHeaders(): Promise<Readonly<Record<string, string>>> {
@@ -145,7 +145,7 @@ async function serve(locations: { readonly inputs: Inputs; readonly page: string
 }
 
 async function cli(project: string, ...args: readonly string[]): Promise<string> {
-  const { stdout } = await execute(process.execPath, [join(root, "node_modules/@oxidevm/cli/dist/bin.js"), ...args], { cwd: project, maxBuffer: 16 * 1024 ** 2 });
+  const { stdout } = await execute(process.execPath, [join(root, "node_modules/@oxvm/cli/dist/bin.js"), ...args], { cwd: project, maxBuffer: 16 * 1024 ** 2 });
   return stdout;
 }
 
@@ -153,8 +153,8 @@ async function cli(project: string, ...args: readonly string[]): Promise<string>
 async function createProject(scratch: string): Promise<string> {
   const project = join(scratch, "project");
   await mkdir(join(project, "src"), { recursive: true });
-  await mkdir(join(project, "node_modules/@oxidevm"), { recursive: true });
-  await symlink(await realpath(join(root, "node_modules/@oxidevm/sdk")), join(project, "node_modules/@oxidevm/sdk"));
+  await mkdir(join(project, "node_modules/@oxvm"), { recursive: true });
+  await symlink(await realpath(join(root, "node_modules/@oxvm/sdk")), join(project, "node_modules/@oxvm/sdk"));
   await writeFile(join(project, "package.json"), `${JSON.stringify({ name: "pyodide-module-qualification", private: true, type: "module" }, null, 2)}\n`);
   await copyFile(join(pageSources, "index.html"), join(project, "index.html"));
   await copyFile(join(pageSources, "tsconfig.json.template"), join(project, "tsconfig.json"));
@@ -221,9 +221,9 @@ export async function runBrowserTest(options: Options): Promise<{ readonly resul
     const internet = options.internet ? await startInternet() : undefined;
     const relay = internet === undefined ? undefined : await startRelayTestPeer(await relayIdentity(), internet.routes, internet.dns);
     const browser = options.browser === "firefox"
-      // Pyodide needs WebAssembly JSPI, which Firefox ships behind a preference; OXIDEVM_FIREFOX_JSPI=1 turns it on for a
+      // Pyodide needs WebAssembly JSPI, which Firefox ships behind a preference; OXVM_FIREFOX_JSPI=1 turns it on for a
       // diagnostic run (the module refuses to start without it, status 122, as it should).
-      ? await firefox.launch({ headless: true, ...(process.env["OXIDEVM_FIREFOX_JSPI"] === "1" ? { firefoxUserPrefs: { "javascript.options.wasm_js_promise_integration": true } } : {}) }) : await chromium.launch({ headless: true, args: ["--js-flags=--experimental-wasm-return-call"] });
+      ? await firefox.launch({ headless: true, ...(process.env["OXVM_FIREFOX_JSPI"] === "1" ? { firefoxUserPrefs: { "javascript.options.wasm_js_promise_integration": true } } : {}) }) : await chromium.launch({ headless: true, args: ["--js-flags=--experimental-wasm-return-call"] });
     try {
       // The relay's own certificate is self-signed for 127.0.0.1: only the browser-to-relay hop accepts it. Python's TLS
       // verifies in the engine against the VM's store and the test root the program loads.
@@ -232,9 +232,9 @@ export async function runBrowserTest(options: Options): Promise<{ readonly resul
       for (let round = 1; round <= options.repeat; round++) {
         const tab = await context.newPage();
         tab.setDefaultTimeout(0);
-        tab.on("console", message => { if (process.env["OXIDEVM_VERBOSE"] !== undefined) process.stderr.write(`browser: ${message.text()}\n`); });
+        tab.on("console", message => { if (process.env["OXVM_VERBOSE"] !== undefined) process.stderr.write(`browser: ${message.text()}\n`); });
         tab.on("pageerror", error => { process.stderr.write(`page error: ${error.message}\n`); });
-        await tab.exposeFunction("oxidevmReport", (value: unknown) => { decodeResults([value]).forEach(show); });
+        await tab.exposeFunction("oxvmReport", (value: unknown) => { decodeResults([value]).forEach(show); });
         await tab.goto(`${served.origin}/page/index.html`);
         if (options.repeat > 1) process.stdout.write(`-- round ${String(round)} of ${String(options.repeat)}\n`);
         const value: unknown = await tab.evaluate(async (input: { origin: string; image: typeof image; only?: string; internet?: { relayUrl: string; root: string } }) => {

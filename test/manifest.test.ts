@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { classifyLicense, COMMANDS_MIN_API, decodeDeclaration, manifestMinApi } from "@oxidevm/sdk/wasm";
+import { classifyLicense, COMMANDS_MIN_API, decodeDeclaration, manifestMinApi } from "@oxvm/sdk/wasm";
 import { describe, expect, it } from "vitest";
 import { RECORDED } from "../scripts/notices.ts";
 import { decodeUpstreamLock } from "../scripts/upstream-lock.ts";
@@ -27,7 +27,7 @@ describe("the manifest", () => {
     expect(manifest.commands).toEqual(["python", "python3"]);
     expect([...manifest.commands]).toEqual([...COMMANDS]);
     expect([...COMMANDS]).toEqual([...COMMANDS].sort());
-    expect(manifest.version).toBe("0.3.0");
+    expect(manifest.version).toBe("0.3.1");
   });
 
   it("needs the engine that enforces network reach (Userspace API 146), which also runs module commands and process.signals", () => {

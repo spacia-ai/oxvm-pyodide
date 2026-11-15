@@ -1,7 +1,7 @@
 /**
  * Loads a shipped package when a program imports it: a finder that goes on `sys.meta_path` ahead of Pyodide's own hook
  * (which would only say how to install the package) and, for the top-level name of a package the release carries
- * (`_oxidevm_packages.imports`, from the lock's `imports`: `PIL` is pillow, `pylab` and `mpl_toolkits` are matplotlib),
+ * (`_oxvm_packages.imports`, from the lock's `imports`: `PIL` is pillow, `pylab` and `mpl_toolkits` are matplotlib),
  * installs it and what it needs from the release's verified copies, synchronously (`installSync` in
  * src/python-loader.ts), then lets the ordinary finders import it. It needs no WebAssembly JSPI and works wherever Python
  * imports, callbacks from JavaScript included. A Ctrl+C during the install is raised once it ends, like after any call
@@ -10,8 +10,8 @@
 export const LAZY_PACKAGES_SOURCE = `import importlib as _importlib
 import sys as _sys
 
-import _oxidevm_bridge as _bridge
-import _oxidevm_packages as _packages
+import _oxvm_bridge as _bridge
+import _oxvm_packages as _packages
 
 
 class _ShippedPackages:

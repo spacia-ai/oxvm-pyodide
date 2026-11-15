@@ -1,4 +1,4 @@
-import type { ProcessSignals, SignalTrap } from "@oxidevm/sdk/wasm";
+import type { ProcessSignals, SignalTrap } from "@oxvm/sdk/wasm";
 import { ModuleError } from "./errors.ts";
 
 /** The JavaScript function, imported by Pyodide's interpreter, with which CPython polls the interrupt buffer. */
@@ -43,7 +43,7 @@ export interface InterruptTarget {
 export const SLEEP_POLL_MS = 20;
 
 /**
- * A Ctrl+C that arrives while Python waits for JavaScript: a call of the `oxidevm` module or `time.sleep`. Pyodide polls
+ * A Ctrl+C that arrives while Python waits for JavaScript: a call of the `oxvm` module or `time.sleep`. Pyodide polls
  * the interrupt buffer whenever Python code runs, its own event loop included, and that loop, which resumes Python when
  * a wait ends, cannot take a KeyboardInterrupt: one raised there escapes into JavaScript and the program never resumes.
  * So a wait takes a pending Ctrl+C out of the buffer before it ends (`hold`), and Python puts it back as soon as it runs

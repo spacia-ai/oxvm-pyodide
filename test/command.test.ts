@@ -1,9 +1,9 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { LinuxError } from "@oxidevm/sdk/js-process";
-import { kit } from "@oxidevm/sdk/wasm";
-import type { CommandIO, Terminals } from "@oxidevm/sdk/wasm";
+import { LinuxError } from "@oxvm/sdk/js-process";
+import { kit } from "@oxvm/sdk/wasm";
+import type { CommandIO, Terminals } from "@oxvm/sdk/wasm";
 import type { PyodideInterface } from "pyodide";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { PYTHON_VERSION } from "../src/cli.ts";
@@ -80,7 +80,7 @@ function setup(options: SetupOptions = {}): Setup {
   const files = nodeFiles({ "/workspace": join(root, "workspace"), "/tmp": join(root, "tmp"), "/home/user": join(root, "home") }, stdio.files);
   const children = fakeProcess(() => ({}));
   const sockets = fakeSockets();
-  sockets.listen("unix:/workspace/_oxidevm/echo.sock", echoUpperCase());
+  sockets.listen("unix:/workspace/_oxvm/echo.sock", echoUpperCase());
   const failures: string[] = [], logs: string[] = [], artifactsRead: string[] = [], startedWith: PyodideOptions[] = [], events: string[] = [];
   const signals = fakeSignals(events, { pendingAtTrap: options.interruptAtTrap === true });
   const toStderr = (text: string): void => { stdio.files.writeAll(stdio.streams.stderr, new TextEncoder().encode(`${text}\n`)); };
@@ -317,10 +317,10 @@ async def main():
     return "asyncio.run works"
 results.append(asyncio.run(main()))
 time.sleep(0)
-import oxidevm
-with oxidevm.connect_unix("/workspace/_oxidevm/echo.sock") as connection:
+import oxvm
+with oxvm.connect_unix("/workspace/_oxvm/echo.sock") as connection:
     connection.sendall(b"hi")
-    results.append("oxidevm " + str(connection.recv(10)))
+    results.append("oxvm " + str(connection.recv(10)))
 print("\\n".join(results))
 import js`;
     expect(await s.main(["-c", program])).toBe(1);
@@ -328,7 +328,7 @@ import js`;
     expect(stdout).toBe([
       "js refused js", "pyodide_js refused pyodide_js", "pyodide.ffi refused pyodide.ffi", "pyodide.http refused pyodide.http",
       "pyodide.code refused pyodide.code", "pyodide.ffi.wrappers refused pyodide.ffi", "from pyodide import ffi: ImportError", "attributes []",
-      "asyncio.run works", "oxidevm b'HI'", "",
+      "asyncio.run works", "oxvm b'HI'", "",
     ].join("\n"));
     expect(stderr.trimEnd().split("\n").at(-1)).toBe("ModuleNotFoundError: No module named 'js' (a program run as a command cannot reach JavaScript)");
     await s.close();
@@ -353,7 +353,7 @@ import js`;
   });
 
   it("closes the sockets a program leaves open when the command ends", async () => {
-    await writeFile(join(root, "workspace/leaky.py"), 'import oxidevm\nconnection = oxidevm.connect_unix("/workspace/_oxidevm/echo.sock")\nconnection.sendall(b"hi")\nprint(connection.recv(10))\n');
+    await writeFile(join(root, "workspace/leaky.py"), 'import oxvm\nconnection = oxvm.connect_unix("/workspace/_oxvm/echo.sock")\nconnection.sendall(b"hi")\nprint(connection.recv(10))\n');
     const s = setup();
     expect(await s.main(["/workspace/leaky.py"])).toBe(0);
     expect(s.stdio.take().stdout).toBe("b'HI'\n");
@@ -367,7 +367,7 @@ import js`;
     const s = setup({ fs: files => ({ ...files, lstat: path => { if (path === "/workspace/data.txt") throw new Error("the host broke"); return files.lstat(path); } }) });
     expect(await s.main(["/workspace/probe.py"])).toBe(0);
     expect(s.stdio.take().stdout).toBe("OSError 29\n777\n");
-    expect(s.logs).toEqual([JSON.stringify({ oxidevm: "log", module: "pyodide", event: "workspace-io", message: "the host broke" })]);
+    expect(s.logs).toEqual([JSON.stringify({ oxvm: "log", module: "pyodide", event: "workspace-io", message: "the host broke" })]);
     await s.close();
   });
 });

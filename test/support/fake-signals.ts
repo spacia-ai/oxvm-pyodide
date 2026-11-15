@@ -1,4 +1,4 @@
-import type { ProcessSignals, SignalName, SignalTrap, TrapSignal } from "@oxidevm/sdk/wasm";
+import type { ProcessSignals, SignalName, SignalTrap, TrapSignal } from "@oxvm/sdk/wasm";
 
 /** A stand-in for the `process.signals` capability, which the SDK's runner provides from engine ADR 0027. */
 export interface FakeSignals {

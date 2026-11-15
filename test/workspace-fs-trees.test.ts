@@ -1,6 +1,6 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { LinuxError } from "@oxidevm/sdk/js-process";
+import { LinuxError } from "@oxvm/sdk/js-process";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { SyncFiles } from "../src/host-types.ts";
 import { normalizePath, PYODIDE_DIRECTORIES, visibleTrees, within } from "../src/workspace-fs.ts";

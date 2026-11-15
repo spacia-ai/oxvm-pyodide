@@ -36,7 +36,7 @@ export interface SocketHost {
   readonly signal: AbortSignal;
 }
 
-/** The JS half of `oxidevm.connect_unix` and `oxidevm.connect_tcp`. Every argument arrives from Python and is checked. */
+/** The JS half of `oxvm.connect_unix` and `oxvm.connect_tcp`. Every argument arrives from Python and is checked. */
 export interface SocketBridge {
   connect(kind: unknown, target: unknown, port: unknown, timeoutMs: unknown): Promise<number>;
   send(handle: unknown, data: unknown, timeoutMs: unknown): Promise<void>;

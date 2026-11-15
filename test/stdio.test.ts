@@ -1,5 +1,5 @@
-import { LinuxError } from "@oxidevm/sdk/js-process";
-import { kit } from "@oxidevm/sdk/wasm";
+import { LinuxError } from "@oxvm/sdk/js-process";
+import { kit } from "@oxvm/sdk/wasm";
 import type { PyodideInterface } from "pyodide";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { SyncFiles } from "../src/host-types.ts";

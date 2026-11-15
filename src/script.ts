@@ -211,7 +211,7 @@ export async function runProgram(py: PyodideInterface, request: ProgramRequest, 
   });
   if (!(namespace instanceof py.ffi.PyProxy)) throw new Error("Pyodide did not convert the request to a Python dict");
   try {
-    const status: unknown = await py.runPythonAsync(SCRIPT_RUNNER_SOURCE, { globals: namespace, filename: "<oxidevm-runner>", dedent: false });
+    const status: unknown = await py.runPythonAsync(SCRIPT_RUNNER_SOURCE, { globals: namespace, filename: "<oxvm-runner>", dedent: false });
     return status === "SIGINT" ? { kind: "signal", signal: "SIGINT" } : { kind: "exit", status: exitStatus(status) };
   } finally {
     namespace.destroy();

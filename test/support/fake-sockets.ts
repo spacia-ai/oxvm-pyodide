@@ -1,4 +1,4 @@
-import { LinuxError } from "@oxidevm/sdk/js-process";
+import { LinuxError } from "@oxvm/sdk/js-process";
 import type { ClientSockets, FileDescriptor } from "../../src/host-types.ts";
 import { descriptor } from "./brands.ts";
 

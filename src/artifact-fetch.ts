@@ -22,7 +22,7 @@ export interface ServedFiles {
  * The header of a WebAssembly file that is served without its bytes because the VM already compiled it: whoever
  * instantiates the response instantiates that module instead (`withPrecompiledWasm` in src/python-loader.ts).
  */
-export const PRECOMPILED_HEADER = "x-oxidevm-precompiled";
+export const PRECOMPILED_HEADER = "x-oxvm-precompiled";
 
 export const VIRTUAL_INDEX = "https://pyodide.invalid/";
 

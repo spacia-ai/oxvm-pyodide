@@ -1,6 +1,6 @@
-import type { ProcessExit, ProcessHandle, UserspaceVM } from "@oxidevm/sdk";
-import { spawnModule } from "@oxidevm/sdk/wasm";
-import type { ModuleHandle } from "@oxidevm/sdk/wasm";
+import type { ProcessExit, ProcessHandle, UserspaceVM } from "@oxvm/sdk";
+import { spawnModule } from "@oxvm/sdk/wasm";
+import type { ModuleHandle } from "@oxvm/sdk/wasm";
 import type { CommandSwitch, EnabledCommands } from "./scenarios-commands.ts";
 import type { InternetConfig } from "./scenarios-internet.ts";
 
@@ -92,7 +92,7 @@ export interface Running {
 }
 
 export interface StartOptions {
-  /** The script is written to /workspace/_oxidevm/run-<name>.py (a name like pandas.py would shadow the package, as it does for `python`). */
+  /** The script is written to /workspace/_oxvm/run-<name>.py (a name like pandas.py would shadow the package, as it does for `python`). */
   readonly name: string;
   readonly args?: readonly string[];
   /** The module's `packages` option; omit for its default. */
@@ -105,8 +105,8 @@ export interface StartOptions {
 
 /** Writes a program into the workspace and starts the module on it. */
 export async function start(context: Context, source: string, options: StartOptions): Promise<Running> {
-  const path = `/workspace/_oxidevm/run-${options.name}.py`;
-  await context.vm.workspace.writeText(`_oxidevm/run-${options.name}.py`, source);
+  const path = `/workspace/_oxvm/run-${options.name}.py`;
+  await context.vm.workspace.writeText(`_oxvm/run-${options.name}.py`, source);
   const began = performance.now();
   const process = await spawnModule(context.vm, context.pyodide, {
     args: [path, ...(options.args ?? [])],
@@ -178,7 +178,7 @@ export function field(value: unknown, key: string): unknown {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? Reflect.get(value, key) : undefined;
 }
 
-/** A progress line for the page's console, which the Node side prints when OXIDEVM_VERBOSE is set. */
+/** A progress line for the page's console, which the Node side prints when OXVM_VERBOSE is set. */
 export function trace(message: string): void {
   console.info(`[scenario ${String(Math.round(performance.now()))} ms] ${message}`);
 }

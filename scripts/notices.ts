@@ -165,7 +165,7 @@ export interface NoticesInput {
 export function renderNotices(input: NoticesInput): string {
   const { lock, runtime, wheels } = input;
   const out: string[] = [];
-  out.push("NOTICES for the oxidevm-pyodide release", RULE, "");
+  out.push("NOTICES for the oxvm-pyodide release", RULE, "");
   out.push(
     `This release carries the Pyodide ${lock.pyodide.version} runtime and ${String(wheels.length)} Python wheels exactly as their projects published them, without`,
     "change, plus the code of this module (module.ts and src/, Apache-2.0, Copyright 2026 Spacia B.V.; see LICENSE). This file reproduces",

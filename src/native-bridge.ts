@@ -1,4 +1,4 @@
-import type { Host } from "@oxidevm/sdk/wasm";
+import type { Host } from "@oxvm/sdk/wasm";
 import { ModuleError } from "./errors.ts";
 import type { AsyncFiles } from "./host-types.ts";
 
@@ -45,7 +45,7 @@ function decodeArguments(json: unknown): readonly string[] {
 }
 
 /**
- * The JS half of `oxidevm.run`. It takes what Python sends (the arguments as JSON text, the input text and the timeout
+ * The JS half of `oxvm.run`. It takes what Python sends (the arguments as JSON text, the input text and the timeout
  * in milliseconds), checks it as untrusted, and hands it to the kit's `runNative`, which owns the limits (64 arguments
  * without NUL characters, an absolute command, 5 MiB of input, 1 ms to 180 s, 1 MiB of each output) and kills the child
  * on timeout, on cancellation and when the module ends. The answer is JSON text with `pid`, `returncode`, `stdout` and

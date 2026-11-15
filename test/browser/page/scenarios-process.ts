@@ -1,5 +1,5 @@
-import type { ProcessExit } from "@oxidevm/sdk";
-import { spawnModule } from "@oxidevm/sdk/wasm";
+import type { ProcessExit } from "@oxvm/sdk";
+import { spawnModule } from "@oxvm/sdk/wasm";
 import { check, describeExit, expectStatus, failureOf, native, run, same, sleep, start } from "./support.ts";
 import type { Context } from "./support.ts";
 
@@ -51,7 +51,7 @@ print("PIL", Image.__name__)
   const preloaded = await run(context, probe, { name: "packages-preload", packages: ["pandas"] });
   expectStatus(preloaded, 0, "a run with pandas preloaded");
   same(preloaded.stdout, "pandas 3.0.2\nnumpy 2.4.6\npillow not loaded\n", "preloading pandas unpacks it and what it needs, and nothing else");
-  const refused = await failureOf(spawnModule(context.vm, context.pyodide, { args: ["/workspace/_oxidevm/packages-lazy.py"], options: { packages: ["scipy"] } }));
+  const refused = await failureOf(spawnModule(context.vm, context.pyodide, { args: ["/workspace/_oxvm/packages-lazy.py"], options: { packages: ["scipy"] } }));
   same([refused.code, refused.reason], ["INVALID_ARGUMENT", "wasm-module-options"], "an unknown package");
   return `numpy, pandas and PIL loaded on import in ${String(lazy.ms)} ms; pandas preloaded in ${String(preloaded.ms)} ms; an unknown package is refused by the SDK (${refused.message})`;
 }
@@ -74,11 +74,11 @@ sys.exit(3)
 export async function identity(context: Context): Promise<string> {
   const running = await start(context, `import json, os
 print(json.dumps({"pid": os.getpid(), "uid": os.getuid(), "gid": os.getgid(), "euid": os.geteuid(), "cwd": os.getcwd(), "home": os.environ["HOME"], "greeting": os.environ.get("GREETING")}))
-`, { name: "identity", packages: [], env: { GREETING: "hello from the process", HOME: "/workspace/_oxidevm" } });
+`, { name: "identity", packages: [], env: { GREETING: "hello from the process", HOME: "/workspace/_oxvm" } });
   const result = await running.finished;
   expectStatus(result, 0, "identity run");
   const uid = (await native(context.vm, "/bin/id", ["-u"])).stdout.trim(), gid = (await native(context.vm, "/bin/id", ["-g"])).stdout.trim();
-  same(parsed(result.stdout), { cwd: "/workspace", euid: Number(uid), gid: Number(gid), greeting: "hello from the process", home: "/workspace/_oxidevm", pid: running.process.pid, uid: Number(uid) }, "what Python reports (HOME is passed through)");
+  same(parsed(result.stdout), { cwd: "/workspace", euid: Number(uid), gid: Number(gid), greeting: "hello from the process", home: "/workspace/_oxvm", pid: running.process.pid, uid: Number(uid) }, "what Python reports (HOME is passed through)");
   return `os.getpid() is the module process's id ${String(running.process.pid)}; uid ${uid}, gid ${gid}`;
 }
 
@@ -96,7 +96,7 @@ export async function exitStatuses(context: Context): Promise<string> {
     const result = await run(context, source, { name: `exit-${name}`, packages: [] });
     expectStatus(result, status, name);
     if (pattern !== undefined) check(pattern.test(result.stderr), `${name}: standard error was ${JSON.stringify(result.stderr)}`);
-    check(!/_pyodide|oxidevm-runner/u.test(result.stderr), `${name}: the runner's own frames leaked into ${result.stderr}`);
+    check(!/_pyodide|oxvm-runner/u.test(result.stderr), `${name}: the runner's own frames leaked into ${result.stderr}`);
     seen.push(`${name}=${String(status)}`);
   }
   // 0.2.0 reads the command line as CPython does, also when the application starts the module: no program means standard input.
@@ -105,9 +105,9 @@ export async function exitStatuses(context: Context): Promise<string> {
   const usage = await bare(context, ["-Z"]);
   same(describeExit(usage.exit), "exit 2", "an unknown option");
   check(usage.stderr.includes("Unknown option: -Z\nusage: pyodide [option] ... [-c cmd | -m mod | file | -] [arg] ..."), `the usage text was ${JSON.stringify(usage.stderr)}`);
-  const absent = await bare(context, ["/workspace/_oxidevm/no-such-program.py"]);
+  const absent = await bare(context, ["/workspace/_oxvm/no-such-program.py"]);
   same(describeExit(absent.exit), "exit 2", "a program that does not exist");
-  check(absent.stderr.includes("can't open file '/workspace/_oxidevm/no-such-program.py': [Errno 2] No such file or directory"), `the message was ${JSON.stringify(absent.stderr)}`);
+  check(absent.stderr.includes("can't open file '/workspace/_oxvm/no-such-program.py': [Errno 2] No such file or directory"), `the message was ${JSON.stringify(absent.stderr)}`);
   return `${seen.join(" ")} empty=0 usage=2 missing=2`;
 }
 
@@ -118,10 +118,10 @@ export async function tamperedArtifact(context: Context): Promise<string> {
   const fresh = await context.openVM();
   await fetch("/__tamper/on");
   try {
-    await fresh.workspace.createDirectory("_oxidevm").catch(() => undefined);
+    await fresh.workspace.createDirectory("_oxvm").catch(() => undefined);
     // The VM checks the files before the module process exists: the start is refused and no module code runs.
-    await fresh.workspace.writeText("_oxidevm/tampered.py", "print('this must never run')\n");
-    const refused = await failureOf(spawnModule(fresh, context.pyodide, { args: ["/workspace/_oxidevm/tampered.py"], cwd: "/workspace", options: { packages: [] } }));
+    await fresh.workspace.writeText("_oxvm/tampered.py", "print('this must never run')\n");
+    const refused = await failureOf(spawnModule(fresh, context.pyodide, { args: ["/workspace/_oxvm/tampered.py"], cwd: "/workspace", options: { packages: [] } }));
     check(refused.message.includes("python_stdlib.zip does not match its sha256 pin"), `the start of a module with an altered file: ${JSON.stringify(refused)}`);
     return `a fresh VM refused to start the module: ${refused.code} ${refused.message}`;
   } finally {
@@ -132,58 +132,58 @@ export async function tamperedArtifact(context: Context): Promise<string> {
 
 export async function nativeRun(context: Context): Promise<string> {
   const result = await run(context, `import json, time
-import oxidevm
+import oxvm
 import pandas as pd
 
 out = {}
-uname = oxidevm.run(["/bin/uname", "-m"])
+uname = oxvm.run(["/bin/uname", "-m"])
 out["uname"] = [uname.stdout.strip(), uname.returncode, uname.pid > 1]
-out["cat"] = oxidevm.run(["/bin/cat"], input="x" * 200000).stdout == "x" * 200000
-failed = oxidevm.run(["/bin/sh", "-c", "printf out; printf err >&2; exit 7"], check=False)
+out["cat"] = oxvm.run(["/bin/cat"], input="x" * 200000).stdout == "x" * 200000
+failed = oxvm.run(["/bin/sh", "-c", "printf out; printf err >&2; exit 7"], check=False)
 out["failed"] = [failed.stdout, failed.stderr, failed.returncode]
 try:
-    oxidevm.run(["/bin/sh", "-c", "echo oops >&2; exit 9"])
+    oxvm.run(["/bin/sh", "-c", "echo oops >&2; exit 9"])
     out["check"] = "accepted"
 except RuntimeError as error:
     out["check"] = str(error)
 began = time.time()
 try:
-    oxidevm.run(["/bin/sh", "-c", "while :; do :; done"], timeout=0.5)
+    oxvm.run(["/bin/sh", "-c", "while :; do :; done"], timeout=0.5)
     out["timeout"] = "accepted"
 except Exception as error:
     out["timeout"] = "timed out" in str(error)
 out["timeout_took_under_10s"] = time.time() - began < 10
 try:
-    oxidevm.run(["/bin/head", "-c", "1100000", "/dev/zero"], timeout=30)
+    oxvm.run(["/bin/head", "-c", "1100000", "/dev/zero"], timeout=30)
     out["limit"] = "accepted"
 except Exception as error:
     out["limit"] = "output limit" in str(error)
 orders = pd.DataFrame({"order_id": list(range(1, 9)), "total": [149, 119, 99, 150, 129, 120, 90, 150]})
-orders.to_csv("/workspace/_oxidevm/orders.csv", index=False)
-oxidevm.run(["/bin/gzip", "-k", "-f", "/workspace/_oxidevm/orders.csv"])
-back = pd.read_csv("/workspace/_oxidevm/orders.csv.gz")
+orders.to_csv("/workspace/_oxvm/orders.csv", index=False)
+oxvm.run(["/bin/gzip", "-k", "-f", "/workspace/_oxvm/orders.csv"])
+back = pd.read_csv("/workspace/_oxvm/orders.csv.gz")
 out["gzip"] = [len(back), int(back["total"].sum())]
 print(json.dumps(out, sort_keys=True))
 `, { name: "native-run" });
-  expectStatus(result, 0, "oxidevm.run");
+  expectStatus(result, 0, "oxvm.run");
   same(parsed(result.stdout), {
     cat: true, check: "Native command exited 9: oops\n", failed: ["out", "err", 7], gzip: [8, 1006], limit: true, timeout: true, timeout_took_under_10s: true, uname: ["x86_64", 0, true],
-  }, "what oxidevm.run did");
-  const listing = await native(context.vm, "/bin/ls", ["/workspace/_oxidevm/orders.csv.gz"]);
+  }, "what oxvm.run did");
+  const listing = await native(context.vm, "/bin/ls", ["/workspace/_oxvm/orders.csv.gz"]);
   same(listing.code, 0, "the file the native gzip wrote is there for Linux too");
   return `uname, input, exit status, check, timeout, output limit and a gzip pipeline between pandas and native gzip: ${String(result.ms)} ms`;
 }
 
 export async function cancellation(context: Context): Promise<string> {
   const { vm } = context;
-  await vm.workspace.remove("_oxidevm/cancel.pid").catch(() => undefined);
+  await vm.workspace.remove("_oxvm/cancel.pid").catch(() => undefined);
   const report: string[] = [];
   for (const scope of ["process-group", "process"] as const) {
-    await vm.workspace.remove("_oxidevm/cancel.pid").catch(() => undefined);
-    const running = await start(context, 'import oxidevm\noxidevm.run(["/bin/sh", "-c", "echo $$ > /workspace/_oxidevm/cancel.pid; while :; do :; done"], timeout=60)\n', { name: `cancel-${scope}`, packages: [] });
+    await vm.workspace.remove("_oxvm/cancel.pid").catch(() => undefined);
+    const running = await start(context, 'import oxvm\noxvm.run(["/bin/sh", "-c", "echo $$ > /workspace/_oxvm/cancel.pid; while :; do :; done"], timeout=60)\n', { name: `cancel-${scope}`, packages: [] });
     let pid = "";
     for (let attempt = 0; attempt < 600 && !/^\d+$/u.test(pid); attempt += 1) {
-      pid = (await vm.workspace.readText("_oxidevm/cancel.pid").catch(() => "")).trim();
+      pid = (await vm.workspace.readText("_oxvm/cancel.pid").catch(() => "")).trim();
       if (!/^\d+$/u.test(pid)) await sleep(100);
     }
     check(/^\d+$/u.test(pid), "the native child did not start");
@@ -209,7 +209,7 @@ export async function startupTiming(context: Context): Promise<string> {
   const variants: readonly (readonly [label: string, source: string, packages?: readonly string[]])[] = [
     ["interpreter only", "print('ready')\n", []],
     ["numpy", "import numpy\nprint('ready')\n", ["numpy"]],
-    ["pandas and matplotlib (the default)", "import os\nos.environ['MPLCONFIGDIR'] = '/workspace/_oxidevm/matplotlib'\nimport pandas, matplotlib.pyplot\nprint('ready')\n"],
+    ["pandas and matplotlib (the default)", "import os\nos.environ['MPLCONFIGDIR'] = '/workspace/_oxvm/matplotlib'\nimport pandas, matplotlib.pyplot\nprint('ready')\n"],
   ];
   const rows: string[] = [];
   for (const [label, source, packages] of variants) {
@@ -224,20 +224,20 @@ export async function startupTiming(context: Context): Promise<string> {
   return `from the start of the module process to its exit, three runs each (diagnostic only): ${rows.join("; ")}`;
 }
 
-/** Whether this browser has WebAssembly JSPI, which the `oxidevm` module's waits need (the module worker runs in it too). */
+/** Whether this browser has WebAssembly JSPI, which the `oxvm` module's waits need (the module worker runs in it too). */
 export const HAS_JSPI = typeof Reflect.get(WebAssembly, "Suspending") === "function";
 
 /**
- * Without JSPI: the `oxidevm` module's run, connect_unix and connect_tcp refuse with ENOTSUP before anything starts, and
+ * Without JSPI: the `oxvm` module's run, connect_unix and connect_tcp refuse with ENOTSUP before anything starts, and
  * the rest of Python (a package on import, time.sleep, Python's own socket to a native server) works.
  */
-export async function oxidevmWithoutJspi(context: Context): Promise<string> {
+export async function oxvmWithoutJspi(context: Context): Promise<string> {
   const result = await run(context, `import errno, json, socket, time
-import oxidevm
+import oxvm
 from pyodide.ffi import can_run_sync
 
 out = {"can_run_sync": can_run_sync()}
-for name, call in (("run", lambda: oxidevm.run(["/bin/sh", "-c", "touch /workspace/_oxidevm/ran"])), ("unix", lambda: oxidevm.connect_unix("/workspace/_oxidevm/none.sock")), ("tcp", lambda: oxidevm.connect_tcp(5598))):
+for name, call in (("run", lambda: oxvm.run(["/bin/sh", "-c", "touch /workspace/_oxvm/ran"])), ("unix", lambda: oxvm.connect_unix("/workspace/_oxvm/none.sock")), ("tcp", lambda: oxvm.connect_tcp(5598))):
     try:
         call()
         out[name] = "ran"
@@ -250,9 +250,9 @@ import numpy
 out["numpy"] = int(numpy.arange(4).sum())
 print(json.dumps(out, sort_keys=True))
 `, { name: "no-jspi" });
-  expectStatus(result, 0, "the oxidevm module without JSPI");
-  same(parsed(result.stdout), { can_run_sync: false, numpy: 6, run: true, sleep: true, tcp: true, unix: true }, "the oxidevm module without JSPI");
-  const ran = await native(context.vm, "/bin/ls", ["/workspace/_oxidevm/ran"]);
+  expectStatus(result, 0, "the oxvm module without JSPI");
+  same(parsed(result.stdout), { can_run_sync: false, numpy: 6, run: true, sleep: true, tcp: true, unix: true }, "the oxvm module without JSPI");
+  const ran = await native(context.vm, "/bin/ls", ["/workspace/_oxvm/ran"]);
   same(ran.code !== 0, true, "no native program started");
   return `run, connect_unix and connect_tcp refused with ENOTSUP naming JSPI before anything started; time.sleep and numpy on import worked (${String(result.ms)} ms)`;
 }
