@@ -1,6 +1,6 @@
 # oxvm-pyodide
 
-An [OXVM](https://oxvm.dev) WebAssembly module (a command) that runs Python programs with
+An [OxVM](https://oxvm.dev) WebAssembly module (a command) that runs Python programs with
 [Pyodide](https://pyodide.org) (CPython 3.14.2 compiled to WebAssembly) in a Userspace JS process of the VM. The program
 shares the VM's files, process ids and sockets with real Linux programs: it reads and writes the VM's files as Linux sees
 them, starts native programs, and talks to services they listen with. pandas and Matplotlib are included. An application can

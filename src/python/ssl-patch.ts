@@ -585,5 +585,5 @@ _ssl.HAS_TLSv1_3 = True
 # The engine checks the server's name against the certificate's subject alternative names only, never its common name,
 # so libraries (urllib3) leave the check to it instead of matching names themselves from getpeercert().
 _ssl.HAS_NEVER_CHECK_COMMON_NAME = True
-_ssl.OPENSSL_VERSION = "OpenSSL 3 compatible (OXVM TLS client, rustls)"
+_ssl.OPENSSL_VERSION = "OpenSSL 3 compatible (OxVM TLS client, rustls)"
 `;

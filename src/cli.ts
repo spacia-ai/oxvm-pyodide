@@ -107,7 +107,7 @@ export function versionText(): string {
 /** The help: CPython's usage line, then what this command takes. */
 export function helpText(argv0: string): string {
   return `${usageLine(argv0)}
-Python ${PYTHON_VERSION} in Pyodide, run by an OXVM WebAssembly module. Options:
+Python ${PYTHON_VERSION} in Pyodide, run by an OxVM WebAssembly module. Options:
 -c cmd : program passed in as string (terminates option list)
 -h     : print this help message and exit (also --help)
 -i     : inspect interactively after running script; forces a prompt even
