@@ -1,6 +1,6 @@
 # oxvm-pyodide: instructions for coding agents
 
-This repository is an OXVM WebAssembly module (a command) that runs Python programs with Pyodide. `module.ts` holds the
+This repository is an OxVM WebAssembly module (a command) that runs Python programs with Pyodide. `module.ts` holds the
 manifest (a literal) and the wiring of the adapter; the code is in `src/`. It declares the commands `python` and `python3`
 (engine ADR 0027): an application turns them on for a VM, and every program there can then run them from its PATH.
 

@@ -5,7 +5,7 @@
  */
 export const OXVM_MODULE_SOURCE = `"""Reach the Linux system that this Python program runs next to.
 
-The program runs as a WebAssembly Python (Pyodide) module inside an OXVM page. It shares the VM's files, process ids
+The program runs as a WebAssembly Python (Pyodide) module inside an OxVM page. It shares the VM's files, process ids
 and sockets with the native Linux programs of the same VM, and this module is how it starts those programs and talks to
 the services they listen with.
 
