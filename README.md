@@ -7,7 +7,7 @@ them, starts native programs, and talks to services they listen with. pandas and
 start it, or turn on its commands, `python3` and `python`, so that shells, scripts and other programs of the VM run it from
 their PATH like any program.
 
-Status: pre-release `0.3.1`, built on `@oxvm/sdk` 0.0.34 (Userspace API 151), which runs modules in an isolated module frame
+Status: pre-release `0.3.1`, built on `@oxvm/sdk` 0.0.37 (Userspace API 154), which runs modules in an isolated module frame
 (engine ADR 0028) and carries the module networking standard (engine ADR 0029). See [Known limits](#known-limits) and
 [Changes in 0.3.0](#changes-in-030).
 
