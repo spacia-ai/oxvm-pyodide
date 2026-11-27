@@ -60,7 +60,7 @@ manifest (a literal) and the wiring of the adapter; the code is in `src/`. It de
   the engine release, a signed Userspace image with python3, and Chromium (see `test/browser/harness.ts`).
   `test:conformance` starts the module as `-c pass`: a start without a program reads one from standard input, which
   `oxvm wasm test` leaves open, so it would never end.
-- `@oxvm/sdk` and `@oxvm/cli` are pinned to version 0.0.38 and installed from npm. The module frame, `net.internet`,
+- `@oxvm/sdk` and `@oxvm/cli` are pinned to version 0.0.39 and installed from npm. The module frame, `net.internet`,
   `kit.emscripten.network` and `kit.tls` require Userspace API 146; module commands and `process.signals` require 145,
   and `files.sync` and `files.async` require 144 for `utimes`. The committed
   `pnpm-workspace.yaml` only allows esbuild's install script and excludes those two versions from pnpm's minimum-release-age
